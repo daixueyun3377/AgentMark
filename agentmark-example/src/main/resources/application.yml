@@ -2,7 +2,7 @@ server:
   port: 8080
 
 agentmark:
-  provider: openai
-  api-key: ${OPENAI_API_KEY:your-api-key-here}
-  model: gpt-4o
-  base-url: https://api.openai.com/v1/
+  provider: claude
+  api-key: ${CLAUDE_API_KEY:***}
+  model: ${CLAUDE_MODEL:claude-sonnet-4-20250514}
+  base-url: ${CLAUDE_BASE_URL:https://api.anthropic.com/}

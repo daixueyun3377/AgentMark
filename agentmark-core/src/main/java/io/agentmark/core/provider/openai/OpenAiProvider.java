@@ -1,6 +1,5 @@
 package io.agentmark.core.provider.openai;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -18,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * OpenAI 兼容的模型提供者（支持 OpenAI、通义千问等兼容接口）。
+ * 支持复杂嵌套类型的 JSON Schema。
  */
 public class OpenAiProvider implements ModelProvider {
 
@@ -84,7 +84,7 @@ public class OpenAiProvider implements ModelProvider {
                 }
             }
 
-            // tools
+            // tools — 支持复杂类型 schema
             if (tools != null && !tools.isEmpty()) {
                 ArrayNode toolsArray = body.putArray("tools");
                 for (ToolDefinition tool : tools) {
@@ -100,9 +100,14 @@ public class OpenAiProvider implements ModelProvider {
                     ArrayNode required = params.putArray("required");
 
                     for (ToolParameter p : tool.getParameters()) {
-                        ObjectNode prop = props.putObject(p.getName());
-                        prop.put("type", p.getType());
-                        prop.put("description", p.getDescription());
+                        if (p.isComplex() && p.getSchema() != null) {
+                            // 复杂类型：直接使用预生成的 schema
+                            props.set(p.getName(), p.getSchema().deepCopy());
+                        } else {
+                            ObjectNode prop = props.putObject(p.getName());
+                            prop.put("type", p.getType());
+                            prop.put("description", p.getDescription());
+                        }
                         if (p.isRequired()) {
                             required.add(p.getName());
                         }
@@ -126,7 +131,6 @@ public class OpenAiProvider implements ModelProvider {
                 JsonNode root = mapper.readTree(response.body().string());
                 JsonNode choice = root.get("choices").get(0).get("message");
 
-                // check tool calls
                 if (choice.has("tool_calls") && !choice.get("tool_calls").isEmpty()) {
                     List<ToolCall> toolCalls = new ArrayList<>();
                     for (JsonNode tc : choice.get("tool_calls")) {

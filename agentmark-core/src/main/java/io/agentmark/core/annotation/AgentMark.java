@@ -7,11 +7,12 @@ import java.lang.annotation.Target;
 
 /**
  * 标记一个方法为 AI Agent 可调用的工具。
+ * AI 会自动分析方法签名和参数类型，理解如何调用。
  *
  * <pre>
  * {@code
- * @Tool(name = "查询天气", description = "查询指定城市的当前天气")
- * public WeatherInfo getWeather(@P("城市名称") String city) {
+ * @AgentMark(name = "查询天气", description = "查询指定城市的当前天气")
+ * public WeatherInfo getWeather(String city) {
  *     return weatherApi.query(city);
  * }
  * }
@@ -19,11 +20,11 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Tool {
+public @interface AgentMark {
 
-    /** 工具名称，AI 用来识别和选择工具 */
-    String name();
+    /** 工具名称，为空时自动使用方法名 */
+    String name() default "";
 
-    /** 工具描述，帮助 AI 理解何时该调用此工具 */
-    String description();
+    /** 工具描述，为空时自动生成 */
+    String description() default "";
 }
