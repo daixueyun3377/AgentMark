@@ -93,10 +93,38 @@ public class AgentMarkAgent {
 
             Object result = method.invoke(tool.getTargetBean(), args);
             log.info("Tool [{}] executed successfully", toolCall.name());
-            return ToolResult.success(toolCall.name(), result);
+
+            // 将工具返回值序列化为 JSON 友好的格式，避免返回对象引用（如 com.xxx.Obj@1a2b3c）
+            Object serializedResult = serializeToolResult(result);
+            return ToolResult.success(toolCall.name(), serializedResult);
         } catch (Exception e) {
             log.error("Tool [{}] execution failed", toolCall.name(), e);
             return ToolResult.failure(toolCall.name(), e.getMessage());
+        }
+    }
+
+    /**
+     * 将工具方法的返回值转换为可被 Jackson 正确序列化的格式。
+     * 对于简单类型和已知集合类型直接返回；
+     * 对于自定义 POJO，先转为 Map/List 结构，确保不会出现对象引用字符串。
+     */
+    private Object serializeToolResult(Object result) {
+        if (result == null) {
+            return null;
+        }
+        // 基本类型和字符串直接返回
+        if (result instanceof String || result instanceof Number || result instanceof Boolean) {
+            return result;
+        }
+        // Map 和 Collection 可能包含自定义对象，需要深度转换
+        try {
+            // 通过 Jackson 序列化再反序列化，确保所有嵌套对象都被转为 Map/List 结构
+            String json = mapper.writeValueAsString(result);
+            return mapper.readValue(json, Object.class);
+        } catch (Exception e) {
+            log.warn("Failed to serialize tool result of type {}, falling back to toString()",
+                    result.getClass().getSimpleName(), e);
+            return result.toString();
         }
     }
 
