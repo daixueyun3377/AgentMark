@@ -116,11 +116,9 @@ public class AgentMarkAgent {
         if (result instanceof String || result instanceof Number || result instanceof Boolean) {
             return result;
         }
-        // Map 和 Collection 可能包含自定义对象，需要深度转换
+        // 自定义 POJO / Map / Collection → 直接转为 Map/List 结构，无需中间 JSON 字符串
         try {
-            // 通过 Jackson 序列化再反序列化，确保所有嵌套对象都被转为 Map/List 结构
-            String json = mapper.writeValueAsString(result);
-            return mapper.readValue(json, Object.class);
+            return mapper.convertValue(result, Object.class);
         } catch (Exception e) {
             log.warn("Failed to serialize tool result of type {}, falling back to toString()",
                     result.getClass().getSimpleName(), e);
