@@ -4,9 +4,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.agentmark</groupId>
+    <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-parent</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.0.1</version>
     <packaging>pom</packaging>
 
     <name>AgentMark</name>
@@ -19,6 +19,19 @@
             <url>https://www.apache.org/licenses/LICENSE-2.0</url>
         </license>
     </licenses>
+
+    <developers>
+        <developer>
+            <name>daixueyun</name>
+            <url>https://github.com/daixueyun3377</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/daixueyun3377/AgentMark.git</connection>
+        <developerConnection>scm:git:ssh://github.com:daixueyun3377/AgentMark.git</developerConnection>
+        <url>https://github.com/daixueyun3377/AgentMark</url>
+    </scm>
 
     <modules>
         <module>agentmark-core</module>
@@ -47,12 +60,12 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>io.agentmark</groupId>
+                <groupId>io.github.daixueyun3377</groupId>
                 <artifactId>agentmark-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.agentmark</groupId>
+                <groupId>io.github.daixueyun3377</groupId>
                 <artifactId>agentmark-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -80,4 +93,67 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <!-- 生成 sources.jar（Central 必需） -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.3.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals><goal>jar-no-fork</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- 生成 javadoc.jar（Central 必需） -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.6.3</version>
+                        <configuration>
+                            <encoding>UTF-8</encoding>
+                            <charset>UTF-8</charset>
+                            <doclint>none</doclint>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals><goal>jar</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- GPG 签名（Central 必需） -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.4</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals><goal>sign</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- 发布到 Maven Central（新版 Central Portal） -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.7.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

@@ -3,6 +3,6 @@ server:
 
 agentmark:
   provider: claude
-  api-key: ${CLAUDE_API_KEY:***}
+  api-key: ${CLAUDE_API_KEY:your-api-key}
   model: ${CLAUDE_MODEL:claude-sonnet-4-20250514}
   base-url: ${CLAUDE_BASE_URL:https://api.anthropic.com/}
