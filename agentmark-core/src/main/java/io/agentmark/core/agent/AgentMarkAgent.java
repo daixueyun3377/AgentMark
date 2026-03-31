@@ -53,26 +53,26 @@ public class AgentMarkAgent {
         int rounds = 0;
         while (response.hasToolCalls() && rounds < MAX_TOOL_ROUNDS) {
             rounds++;
-            history.add(ChatMessage.assistant(response.text(), response.toolCalls()));
+            history.add(ChatMessage.assistant(response.getText(), response.getToolCalls()));
 
-            for (ToolCall toolCall : response.toolCalls()) {
+            for (ToolCall toolCall : response.getToolCalls()) {
                 ToolResult result = executeTool(toolCall);
                 String resultJson = toJson(result);
-                history.add(ChatMessage.toolResult(toolCall.id(), resultJson));
+                history.add(ChatMessage.toolResult(toolCall.getId(), resultJson));
             }
 
             response = provider.submitToolResults(history, registry.getAllTools());
         }
 
-        String finalText = response.text() != null ? response.text() : "";
+        String finalText = response.getText() != null ? response.getText() : "";
         history.add(ChatMessage.assistant(finalText, null));
         return finalText;
     }
 
     private ToolResult executeTool(ToolCall toolCall) {
-        ToolDefinition tool = registry.getTool(toolCall.name());
+        ToolDefinition tool = registry.getTool(toolCall.getName());
         if (tool == null) {
-            return ToolResult.failure(toolCall.name(), "Tool not found: " + toolCall.name());
+            return ToolResult.failure(toolCall.getName(), "Tool not found: " + toolCall.getName());
         }
 
         try {
@@ -82,16 +82,16 @@ public class AgentMarkAgent {
 
             for (int i = 0; i < params.length; i++) {
                 String paramName = params[i].getName();
-                Object value = toolCall.arguments().get(paramName);
+                Object value = toolCall.getArguments().get(paramName);
                 args[i] = convertArg(value, params[i].getType());
             }
 
             Object result = method.invoke(tool.getTargetBean(), args);
-            log.info("Tool [{}] executed successfully", toolCall.name());
-            return ToolResult.success(toolCall.name(), result);
+            log.info("Tool [{}] executed successfully", toolCall.getName());
+            return ToolResult.success(toolCall.getName(), result);
         } catch (Exception e) {
-            log.error("Tool [{}] execution failed", toolCall.name(), e);
-            return ToolResult.failure(toolCall.name(), e.getMessage());
+            log.error("Tool [{}] execution failed", toolCall.getName(), e);
+            return ToolResult.failure(toolCall.getName(), e.getMessage());
         }
     }
 
@@ -103,7 +103,13 @@ public class AgentMarkAgent {
         if (targetType == double.class || targetType == Double.class) return Double.parseDouble(value.toString());
         if (targetType == float.class || targetType == Float.class) return Float.parseFloat(value.toString());
         if (targetType == boolean.class || targetType == Boolean.class) return Boolean.parseBoolean(value.toString());
-        return value;
+        // 复杂类型用 Jackson 反序列化
+        try {
+            return mapper.convertValue(value, targetType);
+        } catch (Exception e) {
+            log.warn("Failed to convert arg to {}: {}", targetType.getSimpleName(), e.getMessage());
+            return value;
+        }
     }
 
     private String toJson(Object obj) {

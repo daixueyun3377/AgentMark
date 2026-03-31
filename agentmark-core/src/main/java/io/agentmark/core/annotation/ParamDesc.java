@@ -10,14 +10,14 @@ import java.lang.annotation.Target;
  *
  * <pre>
  * {@code
- * @Tool(name = "查询订单", description = "根据订单号查询订单详情")
- * public Order getOrder(@P("订单号") String orderId) { ... }
+ * @AgentMark(name = "查询订单", description = "根据订单号查询订单详情")
+ * public Order getOrder(@ParamDesc("订单号") String orderId) { ... }
  * }
  * </pre>
  */
-@Target(ElementType.PARAMETER)
+@Target({ElementType.PARAMETER, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface P {
+public @interface ParamDesc {
 
     /** 参数描述 */
     String value();

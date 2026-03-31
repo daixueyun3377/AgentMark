@@ -1,8 +1,9 @@
 package io.agentmark.spring;
 
 import io.agentmark.core.agent.AgentMarkAgent;
-import io.agentmark.core.annotation.Tool;
+import io.agentmark.core.annotation.AgentMark;
 import io.agentmark.core.provider.ModelProvider;
+import io.agentmark.core.provider.claude.ClaudeProvider;
 import io.agentmark.core.provider.openai.OpenAiProvider;
 import io.agentmark.core.registry.ToolRegistry;
 import org.slf4j.Logger;
@@ -30,12 +31,12 @@ public class AgentMarkAutoConfiguration {
     public ToolRegistry toolRegistry(ApplicationContext context) {
         ToolRegistry registry = new ToolRegistry();
 
-        // 自动扫描所有 Spring Bean 中的 @Tool 方法
+        // 自动扫描所有 Spring Bean 中的 @AgentMark 方法
         for (String beanName : context.getBeanDefinitionNames()) {
             Object bean = context.getBean(beanName);
             boolean hasTool = false;
             for (Method method : bean.getClass().getMethods()) {
-                if (method.isAnnotationPresent(Tool.class)) {
+                if (method.isAnnotationPresent(AgentMark.class)) {
                     hasTool = true;
                     break;
                 }
@@ -52,12 +53,12 @@ public class AgentMarkAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public ModelProvider modelProvider(AgentMarkProperties props) {
-        return switch (props.getProvider()) {
-            case "openai", "dashscope" ->
-                    new OpenAiProvider(props.getApiKey(), props.getModel(), props.getBaseUrl());
-            default ->
-                    new OpenAiProvider(props.getApiKey(), props.getModel(), props.getBaseUrl());
-        };
+        String p = props.getProvider();
+        if ("claude".equals(p)) {
+            return new ClaudeProvider(props.getApiKey(), props.getModel(), props.getBaseUrl());
+        } else {
+            return new OpenAiProvider(props.getApiKey(), props.getModel(), props.getBaseUrl());
+        }
     }
 
     @Bean

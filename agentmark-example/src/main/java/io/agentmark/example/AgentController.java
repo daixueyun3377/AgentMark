@@ -4,6 +4,7 @@ import io.agentmark.core.agent.AgentMarkAgent;
 import io.agentmark.core.agent.AgentMarkSession;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -28,6 +29,6 @@ public class AgentController {
     public Map<String, String> chat(@RequestBody Map<String, String> request) {
         String message = request.get("message");
         String reply = agent.chat(message);
-        return Map.of("reply", reply);
+        return Collections.singletonMap("reply", reply);
     }
 }

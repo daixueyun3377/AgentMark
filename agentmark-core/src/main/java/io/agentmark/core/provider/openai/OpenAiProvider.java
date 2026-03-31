@@ -64,22 +64,22 @@ public class OpenAiProvider implements ModelProvider {
             ArrayNode msgArray = body.putArray("messages");
             for (ChatMessage msg : messages) {
                 ObjectNode msgNode = msgArray.addObject();
-                msgNode.put("role", msg.role());
-                if (msg.content() != null) {
-                    msgNode.put("content", msg.content());
+                msgNode.put("role", msg.getRole());
+                if (msg.getContent() != null) {
+                    msgNode.put("content", msg.getContent());
                 }
-                if (msg.toolCallId() != null) {
-                    msgNode.put("tool_call_id", msg.toolCallId());
+                if (msg.getToolCallId() != null) {
+                    msgNode.put("tool_call_id", msg.getToolCallId());
                 }
-                if (msg.toolCalls() != null && !msg.toolCalls().isEmpty()) {
+                if (msg.getToolCalls() != null && !msg.getToolCalls().isEmpty()) {
                     ArrayNode tcArray = msgNode.putArray("tool_calls");
-                    for (ToolCall tc : msg.toolCalls()) {
+                    for (ToolCall tc : msg.getToolCalls()) {
                         ObjectNode tcNode = tcArray.addObject();
-                        tcNode.put("id", tc.id());
+                        tcNode.put("id", tc.getId());
                         tcNode.put("type", "function");
                         ObjectNode fn = tcNode.putObject("function");
-                        fn.put("name", tc.name());
-                        fn.put("arguments", mapper.writeValueAsString(tc.arguments()));
+                        fn.put("name", tc.getName());
+                        fn.put("arguments", mapper.writeValueAsString(tc.getArguments()));
                     }
                 }
             }
@@ -95,18 +95,7 @@ public class OpenAiProvider implements ModelProvider {
                     fn.put("description", tool.getDescription());
 
                     ObjectNode params = fn.putObject("parameters");
-                    params.put("type", "object");
-                    ObjectNode props = params.putObject("properties");
-                    ArrayNode required = params.putArray("required");
-
-                    for (ToolParameter p : tool.getParameters()) {
-                        ObjectNode prop = props.putObject(p.getName());
-                        prop.put("type", p.getType());
-                        prop.put("description", p.getDescription());
-                        if (p.isRequired()) {
-                            required.add(p.getName());
-                        }
-                    }
+                    buildSchemaNode(params, tool.getParameters());
                 }
             }
 
@@ -146,6 +135,43 @@ public class OpenAiProvider implements ModelProvider {
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to call OpenAI API", e);
+        }
+    }
+
+    /**
+     * 递归构建 JSON Schema 节点，支持嵌套对象、数组、枚举。
+     */
+    private void buildSchemaNode(ObjectNode node, java.util.List<ToolParameter> params) {
+        node.put("type", "object");
+        ObjectNode props = node.putObject("properties");
+        ArrayNode required = node.putArray("required");
+
+        for (ToolParameter p : params) {
+            ObjectNode prop = props.putObject(p.getName());
+            writeParameterSchema(prop, p);
+            if (p.isRequired()) {
+                required.add(p.getName());
+            }
+        }
+    }
+
+    private void writeParameterSchema(ObjectNode prop, ToolParameter p) {
+        prop.put("type", p.getType());
+        if (p.getDescription() != null && !p.getDescription().isEmpty()) {
+            prop.put("description", p.getDescription());
+        }
+        if (p.getEnumValues() != null && !p.getEnumValues().isEmpty()) {
+            ArrayNode enumArr = prop.putArray("enum");
+            for (String v : p.getEnumValues()) {
+                enumArr.add(v);
+            }
+        }
+        if ("object".equals(p.getType()) && p.getProperties() != null && !p.getProperties().isEmpty()) {
+            buildSchemaNode(prop, p.getProperties());
+        }
+        if ("array".equals(p.getType()) && p.getItems() != null) {
+            ObjectNode itemsNode = prop.putObject("items");
+            writeParameterSchema(itemsNode, p.getItems());
         }
     }
 }

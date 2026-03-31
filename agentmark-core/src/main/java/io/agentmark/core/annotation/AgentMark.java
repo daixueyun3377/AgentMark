@@ -10,8 +10,8 @@ import java.lang.annotation.Target;
  *
  * <pre>
  * {@code
- * @Tool(name = "查询天气", description = "查询指定城市的当前天气")
- * public WeatherInfo getWeather(@P("城市名称") String city) {
+ * @AgentMark(name = "查询天气", description = "查询指定城市的当前天气")
+ * public WeatherInfo getWeather(@ParamDesc("城市名称") String city) {
  *     return weatherApi.query(city);
  * }
  * }
@@ -19,11 +19,11 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Tool {
+public @interface AgentMark {
 
-    /** 工具名称，AI 用来识别和选择工具 */
-    String name();
+    /** 工具名称，为空时使用方法名 */
+    String name() default "";
 
-    /** 工具描述，帮助 AI 理解何时该调用此工具 */
-    String description();
+    /** 工具描述，为空时 AI 根据方法签名自动推断 */
+    String description() default "";
 }
