@@ -25,7 +25,7 @@
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
 </dependency>
 ```
 
@@ -253,7 +253,7 @@ curl -X POST http://localhost:8080/api/agent/chat \
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
 </dependency>
 ```
 
@@ -268,14 +268,14 @@ curl -X POST http://localhost:8080/api/agent/chat \
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-core</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
 </dependency>
 
 <!-- app-boot/pom.xml — 启动模块引入 starter -->
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
 </dependency>
 ```
 
