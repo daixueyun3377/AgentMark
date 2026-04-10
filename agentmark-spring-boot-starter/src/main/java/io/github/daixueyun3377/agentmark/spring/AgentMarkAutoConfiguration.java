@@ -8,7 +8,7 @@ import io.github.daixueyun3377.agentmark.core.provider.openai.OpenAiProvider;
 import io.github.daixueyun3377.agentmark.core.registry.ToolRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
@@ -19,6 +19,10 @@ import java.lang.reflect.Method;
 
 /**
  * AgentMark Spring Boot 自动配置。
+ *
+ * <p>工具扫描通过 {@link SmartInitializingSingleton} 延迟到所有单例 Bean
+ * 初始化完成后执行，避免与其他 Bean 的 {@code @PostConstruct} 遍历
+ * ApplicationContext 时产生循环依赖。</p>
  */
 @Configuration
 @EnableConfigurationProperties(AgentMarkProperties.class)
@@ -28,26 +32,32 @@ public class AgentMarkAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ToolRegistry toolRegistry(ApplicationContext context) {
-        ToolRegistry registry = new ToolRegistry();
+    public ToolRegistry toolRegistry() {
+        return new ToolRegistry();
+    }
 
-        // 自动扫描所有 Spring Bean 中的 @AgentMark 方法
-        for (String beanName : context.getBeanDefinitionNames()) {
-            Object bean = context.getBean(beanName);
-            boolean hasTool = false;
-            for (Method method : bean.getClass().getMethods()) {
-                if (method.isAnnotationPresent(AgentMark.class)) {
-                    hasTool = true;
-                    break;
+    /**
+     * 在所有单例 Bean 初始化完成后（包括 @PostConstruct），再扫描 @AgentMark 方法并注册。
+     * 这样不会在 Bean 创建阶段触发其他 Bean 的实例化，彻底避免循环依赖。
+     */
+    @Bean
+    public SmartInitializingSingleton agentMarkToolScanner(ToolRegistry registry, ApplicationContext context) {
+        return () -> {
+            for (String beanName : context.getBeanDefinitionNames()) {
+                Object bean = context.getBean(beanName);
+                boolean hasTool = false;
+                for (Method method : bean.getClass().getMethods()) {
+                    if (method.isAnnotationPresent(AgentMark.class)) {
+                        hasTool = true;
+                        break;
+                    }
+                }
+                if (hasTool) {
+                    registry.register(bean);
                 }
             }
-            if (hasTool) {
-                registry.register(bean);
-            }
-        }
-
-        log.info("AgentMark: registered {} tools", registry.getAllTools().size());
-        return registry;
+            log.info("AgentMark: registered {} tools", registry.getAllTools().size());
+        };
     }
 
     @Bean
