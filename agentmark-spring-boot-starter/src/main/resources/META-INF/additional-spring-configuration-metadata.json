@@ -1,0 +1,44 @@
+{
+  "groups": [
+    {
+      "name": "agentmark",
+      "type": "io.github.daixueyun3377.agentmark.spring.AgentMarkProperties",
+      "sourceType": "io.github.daixueyun3377.agentmark.spring.AgentMarkProperties",
+      "description": "AgentMark 配置属性"
+    }
+  ],
+  "properties": [
+    {
+      "name": "agentmark.provider",
+      "type": "java.lang.String",
+      "description": "模型提供者。claude: Anthropic Claude API；openai: OpenAI 及兼容接口（通义千问、DeepSeek 等）",
+      "defaultValue": "claude"
+    },
+    {
+      "name": "agentmark.api-key",
+      "type": "java.lang.String",
+      "description": "模型 API Key"
+    },
+    {
+      "name": "agentmark.model",
+      "type": "java.lang.String",
+      "description": "模型名称，如 claude-sonnet-4-20250514、gpt-4o、qwen-max",
+      "defaultValue": "claude-sonnet-4-20250514"
+    },
+    {
+      "name": "agentmark.base-url",
+      "type": "java.lang.String",
+      "description": "API 基础地址。Claude 默认 https://api.anthropic.com/，OpenAI 默认 https://api.openai.com/v1/，通义千问填 https://dashscope.aliyuncs.com/compatible-mode/v1/",
+      "defaultValue": "https://api.anthropic.com/"
+    }
+  ],
+  "hints": [
+    {
+      "name": "agentmark.provider",
+      "values": [
+        { "value": "claude", "description": "Anthropic Claude API" },
+        { "value": "openai", "description": "OpenAI 及兼容接口（通义千问、DeepSeek、Moonshot 等）" }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,11 @@
 # AgentMark
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.daixueyun3377/agentmark-spring-boot-starter)](https://central.sonatype.com/artifact/io.github.daixueyun3377/agentmark-spring-boot-starter)
+[![License](https://img.shields.io/github/license/daixueyun3377/AgentMark)](LICENSE)
+[![Java](https://img.shields.io/badge/Java-8%2B-orange)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-2.7%2B-green)](https://spring.io/projects/spring-boot)
+[![Javadoc](https://img.shields.io/badge/Javadoc-online-blue)](https://daixueyun3377.github.io/AgentMark/)
+
 **One annotation, turn any Java method into an AI-callable tool.**
 
 让 AI Agent 调用你的 Java 方法，只需要一个注解。
@@ -25,7 +31,7 @@
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>0.0.5</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -253,7 +259,7 @@ curl -X POST http://localhost:8080/api/agent/chat \
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>0.0.5</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -268,14 +274,14 @@ curl -X POST http://localhost:8080/api/agent/chat \
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-core</artifactId>
-    <version>0.0.5</version>
+    <version>1.0.0</version>
 </dependency>
 
 <!-- app-boot/pom.xml — 启动模块引入 starter -->
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>0.0.5</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -392,6 +398,70 @@ import io.github.daixueyun3377.agentmark.core.provider.ModelProvider.ChatRespons
 import io.github.daixueyun3377.agentmark.core.provider.ModelProvider.ToolCall;
 import io.github.daixueyun3377.agentmark.core.model.ToolDefinition;
 ```
+
+## API 速查
+
+### AgentMarkAgent
+
+| 方法 | 说明 |
+|------|------|
+| `String chat(String userMessage)` | 单轮对话，无上下文记忆 |
+| `AgentMarkSession newSession()` | 创建带上下文的会话，支持多轮对话 |
+
+### AgentMarkSession
+
+| 方法 | 说明 |
+|------|------|
+| `String chat(String userMessage)` | 发送消息并获取回复，自动保持上下文 |
+| `void clear()` | 清除对话历史 |
+
+### @AgentMark
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `name` | String | `""` | 工具名称，仅支持英文和下划线，为空时用方法名 |
+| `description` | String | `""` | 工具描述，帮助 AI 理解何时调用 |
+
+### @ParamDesc
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `value` | String | — | 参数描述（必填） |
+| `required` | boolean | `true` | 是否必填 |
+
+### ModelProvider（接口）
+
+| 方法 | 说明 |
+|------|------|
+| `ChatResponse chat(String userMessage, Collection<ToolDefinition> tools, List<ChatMessage> history)` | 发送用户消息，返回模型回复 |
+| `ChatResponse submitToolResults(List<ChatMessage> history, Collection<ToolDefinition> tools)` | 提交工具调用结果，继续对话 |
+
+**内部类：**
+
+| 类 | 说明 |
+|------|------|
+| `ModelProvider.ChatMessage` | 对话消息（user / assistant / tool） |
+| `ModelProvider.ChatResponse` | 模型回复，包含文本和可能的工具调用 |
+| `ModelProvider.ToolCall` | 工具调用请求，包含 id、name、arguments |
+
+### 配置属性（application.yml）
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `agentmark.provider` | String | `claude` | 模型提供者：`claude` / `openai` |
+| `agentmark.api-key` | String | — | API Key |
+| `agentmark.model` | String | `claude-sonnet-4-20250514` | 模型名称 |
+| `agentmark.base-url` | String | `https://api.anthropic.com/` | API 基础地址 |
+
+> 📖 **在线 Javadoc：** [https://daixueyun3377.github.io/AgentMark/](https://daixueyun3377.github.io/AgentMark/)
+
+## 社区 & 联系
+
+- 📚 [Javadoc 在线文档](https://daixueyun3377.github.io/AgentMark/)
+- 🐛 [Bug 报告](https://github.com/daixueyun3377/AgentMark/issues/new?template=bug_report.yml)
+- 💡 [功能建议](https://github.com/daixueyun3377/AgentMark/issues/new?template=feature_request.yml)
+- 💬 [Discussions](https://github.com/daixueyun3377/AgentMark/discussions)
+- 📧 Email: [daixueyun3377@gmail.com](mailto:daixueyun3377@gmail.com)
 
 ## License
 
