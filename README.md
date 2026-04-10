@@ -1,5 +1,11 @@
 # AgentMark
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.daixueyun3377/agentmark-spring-boot-starter)](https://central.sonatype.com/artifact/io.github.daixueyun3377/agentmark-spring-boot-starter)
+[![License](https://img.shields.io/github/license/daixueyun3377/AgentMark)](LICENSE)
+[![Java](https://img.shields.io/badge/Java-8%2B-orange)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-2.7%2B-green)](https://spring.io/projects/spring-boot)
+[![Javadoc](https://img.shields.io/badge/Javadoc-online-blue)](https://daixueyun3377.github.io/AgentMark/)
+
 **One annotation, turn any Java method into an AI-callable tool.**
 
 让 AI Agent 调用你的 Java 方法，只需要一个注解。
@@ -448,6 +454,14 @@ import io.github.daixueyun3377.agentmark.core.model.ToolDefinition;
 | `agentmark.base-url` | String | `https://api.anthropic.com/` | API 基础地址 |
 
 > 📖 **在线 Javadoc：** [https://daixueyun3377.github.io/AgentMark/](https://daixueyun3377.github.io/AgentMark/)
+
+## 社区 & 联系
+
+- 📚 [Javadoc 在线文档](https://daixueyun3377.github.io/AgentMark/)
+- 🐛 [Bug 报告](https://github.com/daixueyun3377/AgentMark/issues/new?template=bug_report.yml)
+- 💡 [功能建议](https://github.com/daixueyun3377/AgentMark/issues/new?template=feature_request.yml)
+- 💬 [Discussions](https://github.com/daixueyun3377/AgentMark/discussions)
+- 📧 Email: [daixueyun3377@gmail.com](mailto:daixueyun3377@gmail.com)
 
 ## License
 
