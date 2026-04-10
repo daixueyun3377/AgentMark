@@ -185,7 +185,7 @@ AI 会自动构造完整的嵌套对象调用工具。
 
 **支持的类型：**
 - 基本类型：`String`, `int`, `long`, `double`, `float`, `boolean`, `BigDecimal`
-- 日期类型：`Date`, `LocalDate`, `LocalDateTime`
+- 日期类型：`Date`, `LocalDate`, `LocalDateTime`, `LocalTime`, `Instant`, `OffsetDateTime`, `ZonedDateTime`
 - 集合类型：`List<T>`, `Set<T>`, `Map<K,V>`
 - 数组：`T[]`
 - 枚举：自动生成 `enum` 约束
@@ -308,6 +308,7 @@ AgentMark 引入以下依赖，starter 会自动传递，无需手动添加：
 | 依赖 | 版本 | 说明 |
 |------|------|------|
 | `jackson-databind` | 2.17.0 | JSON 序列化/反序列化，构建工具参数 Schema |
+| `jackson-datatype-jsr310` | 2.17.0 | Java 8 日期类型（LocalDate、LocalDateTime 等）序列化支持 |
 | `okhttp3` | 4.12.0 | HTTP 客户端，调用 LLM API |
 | `slf4j-api` | 2.0.12 | 日志门面 |
 | `spring-boot-starter` | 2.7.18 | Spring Boot 自动配置基础 |
