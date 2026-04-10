@@ -393,6 +393,62 @@ import io.github.daixueyun3377.agentmark.core.provider.ModelProvider.ToolCall;
 import io.github.daixueyun3377.agentmark.core.model.ToolDefinition;
 ```
 
+## API 速查
+
+### AgentMarkAgent
+
+| 方法 | 说明 |
+|------|------|
+| `String chat(String userMessage)` | 单轮对话，无上下文记忆 |
+| `AgentMarkSession newSession()` | 创建带上下文的会话，支持多轮对话 |
+
+### AgentMarkSession
+
+| 方法 | 说明 |
+|------|------|
+| `String chat(String userMessage)` | 发送消息并获取回复，自动保持上下文 |
+| `void clear()` | 清除对话历史 |
+
+### @AgentMark
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `name` | String | `""` | 工具名称，仅支持英文和下划线，为空时用方法名 |
+| `description` | String | `""` | 工具描述，帮助 AI 理解何时调用 |
+
+### @ParamDesc
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `value` | String | — | 参数描述（必填） |
+| `required` | boolean | `true` | 是否必填 |
+
+### ModelProvider（接口）
+
+| 方法 | 说明 |
+|------|------|
+| `ChatResponse chat(String userMessage, Collection<ToolDefinition> tools, List<ChatMessage> history)` | 发送用户消息，返回模型回复 |
+| `ChatResponse submitToolResults(List<ChatMessage> history, Collection<ToolDefinition> tools)` | 提交工具调用结果，继续对话 |
+
+**内部类：**
+
+| 类 | 说明 |
+|------|------|
+| `ModelProvider.ChatMessage` | 对话消息（user / assistant / tool） |
+| `ModelProvider.ChatResponse` | 模型回复，包含文本和可能的工具调用 |
+| `ModelProvider.ToolCall` | 工具调用请求，包含 id、name、arguments |
+
+### 配置属性（application.yml）
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `agentmark.provider` | String | `claude` | 模型提供者：`claude` / `openai` |
+| `agentmark.api-key` | String | — | API Key |
+| `agentmark.model` | String | `claude-sonnet-4-20250514` | 模型名称 |
+| `agentmark.base-url` | String | `https://api.anthropic.com/` | API 基础地址 |
+
+> 📖 **在线 Javadoc：** [https://daixueyun3377.github.io/AgentMark/](https://daixueyun3377.github.io/AgentMark/)
+
 ## License
 
 Apache License 2.0
