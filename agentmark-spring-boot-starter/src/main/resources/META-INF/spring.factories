@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  io.agentmark.spring.AgentMarkAutoConfiguration
+  io.github.daixueyun3377.agentmark.spring.AgentMarkAutoConfiguration

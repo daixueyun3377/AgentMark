@@ -11,7 +11,7 @@
 - 🎯 **一个注解搞定** — `@AgentMark` 标记方法，`@ParamDesc` 可选描述参数
 - 🧠 **AI 自动推断** — 不加 `@ParamDesc` 也能用，AI 根据参数名和类型自动理解
 - 🔗 **复杂类型支持** — 嵌套对象、`List`、`Map`、枚举等自动生成 JSON Schema
-- 🤖 **多模型支持** — Claude（P0）/ OpenAI / 通义千问 / 兼容接口
+- 🤖 **多模型支持** — Claude（默认）/ OpenAI / 任何 OpenAI 兼容接口（通义千问、DeepSeek 等）
 - 🚀 **Spring Boot Starter** — 引入依赖，自动扫描，开箱即用
 - 🔌 **零侵入** — 不改变你的代码结构，注解层完全独立
 - 🔗 **自动编排** — 复杂任务自动拆解为多个工具调用
@@ -51,33 +51,36 @@ agentmark:
   base-url: https://api.openai.com/v1/
 ```
 
-**通义千问（DashScope）：**
+**通义千问（通过 OpenAI 兼容接口）：**
 ```yaml
 agentmark:
-  provider: dashscope
+  provider: openai
   api-key: ${DASHSCOPE_API_KEY}
   model: qwen-max
   base-url: https://dashscope.aliyuncs.com/compatible-mode/v1/
 ```
 
+> **说明：** 通义千问、DeepSeek、Moonshot 等提供 OpenAI 兼容接口的模型，`provider` 统一填 `openai`，通过 `base-url` 指向对应的 API 地址即可。
+
 ### 3. 标记你的方法
 
 ```java
+import io.github.daixueyun3377.agentmark.core.annotation.AgentMark;
+import io.github.daixueyun3377.agentmark.core.annotation.ParamDesc;
+
 @Service
 public class WeatherService {
 
-    // 最简用法：只加 @AgentMark，AI 自动推断参数
     @AgentMark(name = "查询天气", description = "查询指定城市的当前天气")
-    public WeatherInfo getWeather(String city) {
+    public WeatherInfo getWeather(@ParamDesc("城市名称") String city) {
         return weatherApi.query(city);
     }
 
-    // 需要补充说明时，用 @ParamDesc（可选）
     @AgentMark(name = "计算器", description = "四则运算")
     public double calculate(
-            double a,
+            @ParamDesc("第一个数") double a,
             @ParamDesc("运算符：+、-、*、/") String operator,
-            double b) {
+            @ParamDesc("第二个数") double b) {
         // ...
     }
 }
@@ -86,6 +89,8 @@ public class WeatherService {
 ### 4. 调用 Agent
 
 ```java
+import io.github.daixueyun3377.agentmark.core.agent.AgentMarkAgent;
+
 @Autowired
 private AgentMarkAgent agent;
 
@@ -101,17 +106,22 @@ String answer = agent.chat("北京今天天气怎么样？");
 
 标记方法为 AI 可调用的工具。
 
-| 属性 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `name` | String | 否 | 工具名称（中文），为空时用方法名 |
-| `description` | String | 否 | 工具描述，帮助 AI 理解何时调用 |
+```java
+import io.github.daixueyun3377.agentmark.core.annotation.AgentMark;
+```
+
+| 属性 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `name` | String | 否 | `""`（使用方法名） | 工具名称，建议用中文便于 AI 理解 |
+| `description` | String | 否 | `""`（空描述） | 工具描述，帮助 AI 理解何时调用 |
 
 ```java
-// 完整写法
+// 推荐写法：提供 name 和 description，AI 理解更准确
 @AgentMark(name = "查询订单", description = "根据订单号查询订单详情")
 public Order getOrder(String orderId) { ... }
 
-// 极简写法：name 和 description 都可以省略
+// 极简写法：name 默认用方法名，description 为空
+// 适合方法名本身已经足够清晰的场景
 @AgentMark
 public Order getOrder(String orderId) { ... }
 ```
@@ -119,6 +129,10 @@ public Order getOrder(String orderId) { ... }
 ### @ParamDesc
 
 可选注解，为参数添加额外描述。不加时 AI 根据参数名和类型自动推断。
+
+```java
+import io.github.daixueyun3377.agentmark.core.annotation.ParamDesc;
+```
 
 | 属性 | 类型 | 必填 | 说明 |
 |------|------|------|------|
@@ -181,23 +195,88 @@ AI 会自动构造完整的嵌套对象调用工具。
 ## 多轮对话
 
 ```java
+import io.github.daixueyun3377.agentmark.core.agent.AgentMarkAgent;
+import io.github.daixueyun3377.agentmark.core.agent.AgentMarkSession;
+
 AgentMarkSession session = agent.newSession();
 session.chat("查一下订单 ORD-001");     // → 订单详情
 session.chat("帮我取消这个订单");        // → AI 知道"这个"指 ORD-001
 ```
 
-## REST API
+## REST API 集成示例
 
-示例项目提供了 HTTP 接口：
+在你的 Spring Boot 项目中创建 Controller，即可通过 HTTP 与 Agent 对话：
+
+```java
+import io.github.daixueyun3377.agentmark.core.agent.AgentMarkAgent;
+import org.springframework.web.bind.annotation.*;
+import java.util.Collections;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/agent")
+public class AgentController {
+
+    private final AgentMarkAgent agent;
+
+    public AgentController(AgentMarkAgent agent) {
+        this.agent = agent;
+    }
+
+    @PostMapping("/chat")
+    public Map<String, String> chat(@RequestBody Map<String, String> request) {
+        String message = request.get("message");
+        String reply = agent.chat(message);
+        return Collections.singletonMap("reply", reply);
+    }
+}
+```
+
+启动你的 Spring Boot 应用后：
 
 ```bash
-# 启动
-mvn spring-boot:run -pl agentmark-example
-
-# 调用
 curl -X POST http://localhost:8080/api/agent/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "北京今天天气怎么样？"}'
+```
+
+## 多模块项目集成
+
+如果你的项目是多模块结构（如 `app-api`、`app-service`、`app-common` 等），推荐如下方式引入：
+
+**方式一：在业务模块中引入 starter（推荐）**
+
+直接在使用 `@AgentMark` 注解的业务模块中引入 starter 依赖：
+
+```xml
+<!-- app-service/pom.xml -->
+<dependency>
+    <groupId>io.github.daixueyun3377</groupId>
+    <artifactId>agentmark-spring-boot-starter</artifactId>
+    <version>0.0.3</version>
+</dependency>
+```
+
+确保 Spring Boot 启动类能扫描到标注了 `@AgentMark` 的 Bean（通常 `@SpringBootApplication` 的包路径覆盖即可）。
+
+**方式二：拆分依赖**
+
+如果只想在业务模块中使用注解，不想引入 Spring Boot 自动配置：
+
+```xml
+<!-- app-service/pom.xml — 只引入核心注解 -->
+<dependency>
+    <groupId>io.github.daixueyun3377</groupId>
+    <artifactId>agentmark-core</artifactId>
+    <version>0.0.3</version>
+</dependency>
+
+<!-- app-boot/pom.xml — 启动模块引入 starter -->
+<dependency>
+    <groupId>io.github.daixueyun3377</groupId>
+    <artifactId>agentmark-spring-boot-starter</artifactId>
+    <version>0.0.3</version>
+</dependency>
 ```
 
 ## 项目结构
@@ -210,7 +289,7 @@ AgentMark/
 │   ├── model/                       # ToolDefinition, ToolParameter, ToolResult
 │   ├── provider/                    # ModelProvider 接口
 │   │   ├── claude/ClaudeProvider    # Claude API 对接
-│   │   └── openai/OpenAiProvider    # OpenAI API 对接
+│   │   └── openai/OpenAiProvider    # OpenAI 兼容 API 对接
 │   └── registry/ToolRegistry        # 工具注册中心 + JSON Schema 生成
 ├── agentmark-spring-boot-starter/   # Spring Boot 自动配置
 └── agentmark-example/               # 示例项目
@@ -242,21 +321,62 @@ AgentMark/
 
 ## 自定义模型提供者
 
-```java
-@Bean
-public ModelProvider customProvider() {
-    return new ModelProvider() {
-        @Override
-        public ChatResponse chat(String userMessage, Collection<ToolDefinition> tools, List<ChatMessage> history) {
-            // 对接你的内部模型
-        }
+如果内置的 Claude / OpenAI Provider 不满足需求，可以自定义实现 `ModelProvider` 接口：
 
-        @Override
-        public ChatResponse submitToolResults(List<ChatMessage> history, Collection<ToolDefinition> tools) {
-            // 处理工具调用结果
-        }
-    };
+```java
+import io.github.daixueyun3377.agentmark.core.provider.ModelProvider;
+import io.github.daixueyun3377.agentmark.core.model.ToolDefinition;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.Collection;
+import java.util.List;
+
+@Configuration
+public class MyModelConfig {
+
+    @Bean
+    public ModelProvider customProvider() {
+        return new ModelProvider() {
+            @Override
+            public ChatResponse chat(String userMessage,
+                                     Collection<ToolDefinition> tools,
+                                     List<ChatMessage> history) {
+                // 对接你的内部模型
+                // ChatMessage、ChatResponse、ToolCall 均为 ModelProvider 的内部类
+                return new ChatResponse("回复内容", null);
+            }
+
+            @Override
+            public ChatResponse submitToolResults(List<ChatMessage> history,
+                                                  Collection<ToolDefinition> tools) {
+                // 处理工具调用结果后继续对话
+                return new ChatResponse("回复内容", null);
+            }
+        };
+    }
 }
+```
+
+> **注意：** `ChatMessage`、`ChatResponse`、`ToolCall` 均为 `ModelProvider` 的内部类，使用时通过 `ModelProvider.ChatMessage` 等方式引用，或在实现类内部直接使用。
+
+## 完整 import 速查
+
+```java
+// 核心注解
+import io.github.daixueyun3377.agentmark.core.annotation.AgentMark;
+import io.github.daixueyun3377.agentmark.core.annotation.ParamDesc;
+
+// Agent 与会话
+import io.github.daixueyun3377.agentmark.core.agent.AgentMarkAgent;
+import io.github.daixueyun3377.agentmark.core.agent.AgentMarkSession;
+
+// 自定义 Provider 时需要
+import io.github.daixueyun3377.agentmark.core.provider.ModelProvider;
+import io.github.daixueyun3377.agentmark.core.provider.ModelProvider.ChatMessage;
+import io.github.daixueyun3377.agentmark.core.provider.ModelProvider.ChatResponse;
+import io.github.daixueyun3377.agentmark.core.provider.ModelProvider.ToolCall;
+import io.github.daixueyun3377.agentmark.core.model.ToolDefinition;
 ```
 
 ## License
