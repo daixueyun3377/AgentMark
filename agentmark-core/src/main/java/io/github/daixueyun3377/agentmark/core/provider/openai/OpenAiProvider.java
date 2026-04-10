@@ -3,6 +3,7 @@ package io.github.daixueyun3377.agentmark.core.provider.openai;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.daixueyun3377.agentmark.core.model.ToolDefinition;
@@ -27,7 +28,7 @@ public class OpenAiProvider implements ModelProvider {
     private final String model;
     private final String baseUrl;
     private final OkHttpClient client;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     public OpenAiProvider(String apiKey, String model, String baseUrl) {
         this.apiKey = apiKey;
