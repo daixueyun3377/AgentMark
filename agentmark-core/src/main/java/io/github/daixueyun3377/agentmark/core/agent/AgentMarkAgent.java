@@ -1,6 +1,7 @@
 package io.github.daixueyun3377.agentmark.core.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.github.daixueyun3377.agentmark.core.model.ToolDefinition;
 import io.github.daixueyun3377.agentmark.core.model.ToolResult;
 import io.github.daixueyun3377.agentmark.core.provider.ModelProvider;
@@ -25,7 +26,7 @@ public class AgentMarkAgent {
 
     private final ToolRegistry registry;
     private final ModelProvider provider;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     public AgentMarkAgent(ToolRegistry registry, ModelProvider provider) {
         this.registry = registry;

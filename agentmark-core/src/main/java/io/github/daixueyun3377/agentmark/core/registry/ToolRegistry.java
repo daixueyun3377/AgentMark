@@ -173,6 +173,10 @@ public class ToolRegistry {
         if (type == java.util.Date.class) return "string";
         if (type == LocalDate.class) return "string";
         if (type == LocalDateTime.class) return "string";
+        if (type == LocalTime.class) return "string";
+        if (type == java.time.Instant.class) return "string";
+        if (type == java.time.OffsetDateTime.class) return "string";
+        if (type == java.time.ZonedDateTime.class) return "string";
         return null;
     }
 }

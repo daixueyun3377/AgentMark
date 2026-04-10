@@ -25,7 +25,7 @@
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
 </dependency>
 ```
 
@@ -71,12 +71,12 @@ import io.github.daixueyun3377.agentmark.core.annotation.ParamDesc;
 @Service
 public class WeatherService {
 
-    @AgentMark(name = "查询天气", description = "查询指定城市的当前天气")
+    @AgentMark(name = "getWeather", description = "查询指定城市的当前天气")
     public WeatherInfo getWeather(@ParamDesc("城市名称") String city) {
         return weatherApi.query(city);
     }
 
-    @AgentMark(name = "计算器", description = "四则运算")
+    @AgentMark(name = "calculate", description = "四则运算")
     public double calculate(
             @ParamDesc("第一个数") double a,
             @ParamDesc("运算符：+、-、*、/") String operator,
@@ -112,12 +112,12 @@ import io.github.daixueyun3377.agentmark.core.annotation.AgentMark;
 
 | 属性 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| `name` | String | 否 | `""`（使用方法名） | 工具名称，建议用中文便于 AI 理解 |
+| `name` | String | 否 | `""`（使用方法名） | 工具名称，**仅支持英文和下划线**，为空时用方法名 |
 | `description` | String | 否 | `""`（空描述） | 工具描述，帮助 AI 理解何时调用 |
 
 ```java
 // 推荐写法：提供 name 和 description，AI 理解更准确
-@AgentMark(name = "查询订单", description = "根据订单号查询订单详情")
+@AgentMark(name = "getOrder", description = "根据订单号查询订单详情")
 public Order getOrder(String orderId) { ... }
 
 // 极简写法：name 默认用方法名，description 为空
@@ -160,7 +160,7 @@ public class OrderRequest {
 AgentMark 自动将 Java 类型转换为 JSON Schema，支持任意嵌套深度：
 
 ```java
-@AgentMark(name = "创建订单", description = "根据用户需求创建订单")
+@AgentMark(name = "createOrder", description = "根据用户需求创建订单")
 public OrderResult createOrder(OrderRequest order) {
     // AI 会自动理解 OrderRequest 的完整结构
 }
@@ -185,7 +185,7 @@ AI 会自动构造完整的嵌套对象调用工具。
 
 **支持的类型：**
 - 基本类型：`String`, `int`, `long`, `double`, `float`, `boolean`, `BigDecimal`
-- 日期类型：`Date`, `LocalDate`, `LocalDateTime`
+- 日期类型：`Date`, `LocalDate`, `LocalDateTime`, `LocalTime`, `Instant`, `OffsetDateTime`, `ZonedDateTime`
 - 集合类型：`List<T>`, `Set<T>`, `Map<K,V>`
 - 数组：`T[]`
 - 枚举：自动生成 `enum` 约束
@@ -253,7 +253,7 @@ curl -X POST http://localhost:8080/api/agent/chat \
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
 </dependency>
 ```
 
@@ -268,14 +268,14 @@ curl -X POST http://localhost:8080/api/agent/chat \
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-core</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
 </dependency>
 
 <!-- app-boot/pom.xml — 启动模块引入 starter -->
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
 </dependency>
 ```
 
@@ -298,8 +298,22 @@ AgentMark/
 ## 环境要求
 
 - JDK 1.8+
-- Spring Boot 2.7+
+- Spring Boot 2.7+（兼容 Spring Boot 3.x，需 JDK 17+）
 - Maven 3.6+
+
+### 依赖说明
+
+AgentMark 引入以下依赖，starter 会自动传递，无需手动添加：
+
+| 依赖 | 版本 | 说明 |
+|------|------|------|
+| `jackson-databind` | 2.17.0 | JSON 序列化/反序列化，构建工具参数 Schema |
+| `jackson-datatype-jsr310` | 2.17.0 | Java 8 日期类型（LocalDate、LocalDateTime 等）序列化支持 |
+| `okhttp3` | 4.12.0 | HTTP 客户端，调用 LLM API |
+| `slf4j-api` | 由 Spring Boot 管理 | 日志门面 |
+| `spring-boot-starter` | 2.7.18 | Spring Boot 自动配置基础 |
+
+> **版本冲突提示：** 如果你的项目已有上述依赖的不同版本，Spring Boot 的 `dependencyManagement` 通常会统一管理。若遇到版本冲突，可在你的 `pom.xml` 中通过 `<dependencyManagement>` 显式指定版本覆盖。
 
 ### ⚠️ 重要：编译参数
 

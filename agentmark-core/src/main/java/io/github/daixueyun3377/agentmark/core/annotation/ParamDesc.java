@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
  *
  * <pre>
  * {@code
- * @AgentMark(name = "查询订单", description = "根据订单号查询订单详情")
+ * @AgentMark(name = "getOrder", description = "根据订单号查询订单详情")
  * public Order getOrder(@ParamDesc("订单号") String orderId) { ... }
  * }
  * </pre>

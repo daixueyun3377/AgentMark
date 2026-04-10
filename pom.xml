@@ -6,7 +6,7 @@
 
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-parent</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
     <packaging>pom</packaging>
 
     <name>AgentMark</name>
@@ -47,7 +47,6 @@
         <spring-boot.version>2.7.18</spring-boot.version>
         <jackson.version>2.17.0</jackson.version>
         <okhttp.version>4.12.0</okhttp.version>
-        <slf4j.version>2.0.12</slf4j.version>
     </properties>
 
     <dependencyManagement>
@@ -75,14 +74,14 @@
                 <version>${jackson.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp</artifactId>
                 <version>${okhttp.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>${slf4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
