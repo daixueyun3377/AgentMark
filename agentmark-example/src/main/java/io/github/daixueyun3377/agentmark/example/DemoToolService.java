@@ -15,7 +15,7 @@ import java.util.Map;
 @Service
 public class DemoToolService {
 
-    @AgentMark(name = "查询天气", description = "查询指定城市的当前天气信息")
+    @AgentMark(name = "getWeather", description = "查询指定城市的当前天气信息")
     public Map<String, Object> getWeather(@ParamDesc("城市名称") String city) {
         Map<String, Object> weather = new HashMap<String, Object>();
         weather.put("city", city);
@@ -26,12 +26,12 @@ public class DemoToolService {
         return weather;
     }
 
-    @AgentMark(name = "查询时间", description = "查询当前系统时间")
+    @AgentMark(name = "getCurrentTime", description = "查询当前系统时间")
     public String getCurrentTime() {
         return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 
-    @AgentMark(name = "计算器", description = "计算两个数的四则运算")
+    @AgentMark(name = "calculate", description = "计算两个数的四则运算")
     public Map<String, Object> calculate(
             @ParamDesc("第一个数") double a,
             @ParamDesc("运算符：+、-、*、/") String operator,

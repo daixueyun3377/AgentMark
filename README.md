@@ -71,12 +71,12 @@ import io.github.daixueyun3377.agentmark.core.annotation.ParamDesc;
 @Service
 public class WeatherService {
 
-    @AgentMark(name = "查询天气", description = "查询指定城市的当前天气")
+    @AgentMark(name = "getWeather", description = "查询指定城市的当前天气")
     public WeatherInfo getWeather(@ParamDesc("城市名称") String city) {
         return weatherApi.query(city);
     }
 
-    @AgentMark(name = "计算器", description = "四则运算")
+    @AgentMark(name = "calculate", description = "四则运算")
     public double calculate(
             @ParamDesc("第一个数") double a,
             @ParamDesc("运算符：+、-、*、/") String operator,
@@ -112,12 +112,12 @@ import io.github.daixueyun3377.agentmark.core.annotation.AgentMark;
 
 | 属性 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| `name` | String | 否 | `""`（使用方法名） | 工具名称，建议用中文便于 AI 理解 |
+| `name` | String | 否 | `""`（使用方法名） | 工具名称，**仅支持英文**，为空时用方法名 |
 | `description` | String | 否 | `""`（空描述） | 工具描述，帮助 AI 理解何时调用 |
 
 ```java
 // 推荐写法：提供 name 和 description，AI 理解更准确
-@AgentMark(name = "查询订单", description = "根据订单号查询订单详情")
+@AgentMark(name = "getOrder", description = "根据订单号查询订单详情")
 public Order getOrder(String orderId) { ... }
 
 // 极简写法：name 默认用方法名，description 为空
@@ -160,7 +160,7 @@ public class OrderRequest {
 AgentMark 自动将 Java 类型转换为 JSON Schema，支持任意嵌套深度：
 
 ```java
-@AgentMark(name = "创建订单", description = "根据用户需求创建订单")
+@AgentMark(name = "createOrder", description = "根据用户需求创建订单")
 public OrderResult createOrder(OrderRequest order) {
     // AI 会自动理解 OrderRequest 的完整结构
 }
