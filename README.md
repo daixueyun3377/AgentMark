@@ -298,8 +298,21 @@ AgentMark/
 ## 环境要求
 
 - JDK 1.8+
-- Spring Boot 2.7+
+- Spring Boot 2.7+（兼容 Spring Boot 3.x，需 JDK 17+）
 - Maven 3.6+
+
+### 依赖说明
+
+AgentMark 引入以下依赖，starter 会自动传递，无需手动添加：
+
+| 依赖 | 版本 | 说明 |
+|------|------|------|
+| `jackson-databind` | 2.17.0 | JSON 序列化/反序列化，构建工具参数 Schema |
+| `okhttp3` | 4.12.0 | HTTP 客户端，调用 LLM API |
+| `slf4j-api` | 2.0.12 | 日志门面 |
+| `spring-boot-starter` | 2.7.18 | Spring Boot 自动配置基础 |
+
+> **版本冲突提示：** 如果你的项目已有上述依赖的不同版本，Spring Boot 的 `dependencyManagement` 通常会统一管理。若遇到版本冲突，可在你的 `pom.xml` 中通过 `<dependencyManagement>` 显式指定版本覆盖。
 
 ### ⚠️ 重要：编译参数
 
