@@ -112,7 +112,7 @@ import io.github.daixueyun3377.agentmark.core.annotation.AgentMark;
 
 | 属性 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| `name` | String | 否 | `""`（使用方法名） | 工具名称，**仅支持英文**，为空时用方法名 |
+| `name` | String | 否 | `""`（使用方法名） | 工具名称，**仅支持英文和下划线**，为空时用方法名 |
 | `description` | String | 否 | `""`（空描述） | 工具描述，帮助 AI 理解何时调用 |
 
 ```java

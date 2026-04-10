@@ -21,7 +21,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface AgentMark {
 
-    /** 工具名称（仅支持英文），为空时使用方法名 */
+    /** 工具名称（仅支持英文和下划线），为空时使用方法名 */
     String name() default "";
 
     /** 工具描述，为空时 AI 根据方法签名自动推断 */
