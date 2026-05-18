@@ -21,3 +21,4 @@ Thumbs.db
 # Env
 .env
 *.log
+.flattened-pom.xml
