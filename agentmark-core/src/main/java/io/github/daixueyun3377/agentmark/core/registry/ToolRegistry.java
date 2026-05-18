@@ -25,9 +25,11 @@ public class ToolRegistry {
 
     /**
      * 扫描对象中所有 @AgentMark 标记的方法并注册。
+     * 支持 Spring AOP 代理对象：通过解析目标类获取注解，调用时仍走代理保留切面。
      */
     public void register(Object bean) {
-        for (Method method : bean.getClass().getMethods()) {
+        Class<?> targetClass = resolveTargetClass(bean);
+        for (Method method : targetClass.getMethods()) {
             AgentMark tool = method.getAnnotation(AgentMark.class);
             if (tool == null) continue;
 
@@ -157,6 +159,18 @@ public class ToolRegistry {
             current = current.getSuperclass();
         }
         return fields;
+    }
+
+    /**
+     * 解析目标类，穿透 CGLIB 代理。
+     * CGLIB 代理类名包含 "$$"，其父类即为原始目标类。
+     */
+    private Class<?> resolveTargetClass(Object bean) {
+        Class<?> clazz = bean.getClass();
+        while (clazz.getName().contains("$$") && clazz.getSuperclass() != null) {
+            clazz = clazz.getSuperclass();
+        }
+        return clazz;
     }
 
     /**

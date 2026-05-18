@@ -8,6 +8,7 @@ import io.github.daixueyun3377.agentmark.core.provider.openai.OpenAiProvider;
 import io.github.daixueyun3377.agentmark.core.registry.ToolRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -45,8 +46,9 @@ public class AgentMarkAutoConfiguration {
         return () -> {
             for (String beanName : context.getBeanDefinitionNames()) {
                 Object bean = context.getBean(beanName);
+                Class<?> targetClass = AopUtils.getTargetClass(bean);
                 boolean hasTool = false;
-                for (Method method : bean.getClass().getMethods()) {
+                for (Method method : targetClass.getMethods()) {
                     if (method.isAnnotationPresent(AgentMark.class)) {
                         hasTool = true;
                         break;
