@@ -2,8 +2,7 @@ package io.github.daixueyun3377.agentmark.core.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.github.daixueyun3377.agentmark.core.model.ToolDefinition;
-import io.github.daixueyun3377.agentmark.core.model.ToolResult;
+import io.github.daixueyun3377.agentmark.core.model.*;
 import io.github.daixueyun3377.agentmark.core.provider.ModelProvider;
 import io.github.daixueyun3377.agentmark.core.provider.ModelProvider.*;
 import io.github.daixueyun3377.agentmark.core.registry.ToolRegistry;
@@ -34,9 +33,9 @@ public class AgentMarkAgent {
     }
 
     /**
-     * 单轮对话（无上下文）。
+     * 单轮对话（无上下文），返回包含回复文本和统计信息的结果。
      */
-    public String chat(String userMessage) {
+    public ChatResult chat(String userMessage) {
         return newSession().chat(userMessage);
     }
 
@@ -47,8 +46,22 @@ public class AgentMarkAgent {
         return new AgentMarkSession(this);
     }
 
-    String processMessage(String userMessage, List<ChatMessage> history) {
-        ChatResponse response = provider.chat(userMessage, registry.getAllTools(), history);
+    ChatResult processMessage(String userMessage, List<ChatMessage> history) {
+        ChatStatistics stats = new ChatStatistics();
+        long totalStart = System.currentTimeMillis();
+
+        // 首次 LLM 调用
+        long llmStart = System.currentTimeMillis();
+        ChatResponse response;
+        try {
+            response = provider.chat(userMessage, registry.getAllTools(), history);
+            stats.recordLlmCall(llmStart, System.currentTimeMillis() - llmStart, true, null);
+        } catch (Exception e) {
+            stats.recordLlmCall(llmStart, System.currentTimeMillis() - llmStart, false, e.getMessage());
+            stats.setTotalDurationMs(System.currentTimeMillis() - totalStart);
+            return new ChatResult("", stats);
+        }
+
         history.add(ChatMessage.user(userMessage));
 
         int rounds = 0;
@@ -57,17 +70,33 @@ public class AgentMarkAgent {
             history.add(ChatMessage.assistant(response.getText(), response.getToolCalls()));
 
             for (ToolCall toolCall : response.getToolCalls()) {
+                long toolStart = System.currentTimeMillis();
                 ToolResult result = executeTool(toolCall);
+                long toolDuration = System.currentTimeMillis() - toolStart;
+                stats.recordToolCall(toolCall.getName(), toolStart, toolDuration, result.isSuccess(), result.getError());
+
                 String resultJson = toJson(result);
                 history.add(ChatMessage.toolResult(toolCall.getId(), resultJson));
             }
 
-            response = provider.submitToolResults(history, registry.getAllTools());
+            // 后续 LLM 调用（提交工具结果）
+            llmStart = System.currentTimeMillis();
+            try {
+                response = provider.submitToolResults(history, registry.getAllTools());
+                stats.recordLlmCall(llmStart, System.currentTimeMillis() - llmStart, true, null);
+            } catch (Exception e) {
+                stats.recordLlmCall(llmStart, System.currentTimeMillis() - llmStart, false, e.getMessage());
+                stats.setTotalDurationMs(System.currentTimeMillis() - totalStart);
+                return new ChatResult("", stats);
+            }
         }
 
         String finalText = response.getText() != null ? response.getText() : "";
         history.add(ChatMessage.assistant(finalText, null));
-        return finalText;
+
+        stats.setTotalDurationMs(System.currentTimeMillis() - totalStart);
+        log.info("Chat completed: {}", stats);
+        return new ChatResult(finalText, stats);
     }
 
     private ToolResult executeTool(ToolCall toolCall) {

@@ -1,5 +1,6 @@
 package io.github.daixueyun3377.agentmark.core.agent;
 
+import io.github.daixueyun3377.agentmark.core.model.ChatResult;
 import io.github.daixueyun3377.agentmark.core.provider.ModelProvider.ChatMessage;
 
 import java.util.ArrayList;
@@ -19,8 +20,9 @@ public class AgentMarkSession {
 
     /**
      * 发送消息并获取回复，自动保持上下文。
+     * 返回包含回复文本和统计信息的结果。
      */
-    public String chat(String userMessage) {
+    public ChatResult chat(String userMessage) {
         return agent.processMessage(userMessage, history);
     }
 
