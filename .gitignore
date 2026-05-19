@@ -22,3 +22,6 @@ Thumbs.db
 .env
 *.log
 .flattened-pom.xml
+
+# GitHub
+.github/
