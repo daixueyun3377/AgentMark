@@ -31,7 +31,7 @@
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
@@ -46,6 +46,7 @@ agentmark:
   api-key: ${CLAUDE_API_KEY}
   model: claude-sonnet-4-20250514
   # base-url: https://api.anthropic.com/  # 默认值，可不填
+  # system-prompt: 你是一个专业助手  # 可选，定义 LLM 角色和行为
 ```
 
 **OpenAI：**
@@ -200,51 +201,87 @@ AI 会自动构造完整的嵌套对象调用工具。
 - 嵌套对象：递归解析所有字段
 - 循环引用：自动检测并防护
 
-## 调用统计
+## 系统提示词（System Prompt）
 
-`chat()` 返回 `ChatResult`，包含回复文本和完整的调用统计信息：
+通过 `system-prompt` 配置 LLM 的角色和行为：
 
-```java
-ChatResult result = agent.chat("北京今天天气怎么样？");
-ChatStatistics stats = result.getStatistics();
-
-stats.getLlmCallCount();    // LLM 调用次数
-stats.getToolCallCount();   // 工具调用次数
-stats.getTotalDurationMs(); // 总耗时（ms）
-stats.getLlmDurationMs();   // LLM 调用总耗时
-stats.getToolDurationMs();  // 工具调用总耗时
-stats.getCallChain();       // 完整调用链明细
+```yaml
+agentmark:
+  system-prompt: |
+    你是一个招聘助手，回答要简洁专业。
+    只回答与岗位、招聘相关的问题。
+    不确定的信息不要编造。
 ```
 
-调用链（`callChain`）记录每一步的详细信息，包括 LLM 的输入输出、工具调用的入参和返回值：
+### 多业务场景（多 Agent）
+
+不同业务场景可以创建多个 Agent 实例，各自使用不同的 system prompt：
+
+```java
+@Configuration
+public class AgentConfig {
+
+    @Bean("recruitAgent")
+    public AgentMarkAgent recruitAgent(ToolRegistry registry, ModelProvider provider) {
+        return new AgentMarkAgent(registry, provider, null, "你是招聘助手，只回答招聘相关问题");
+    }
+
+    @Bean("customerAgent")
+    public AgentMarkAgent customerAgent(ToolRegistry registry, ModelProvider provider) {
+        return new AgentMarkAgent(registry, provider, null, "你是客服助手，语气友好耐心");
+    }
+}
+```
+
+使用时通过 `@Qualifier` 指定：
+
+```java
+@Autowired
+@Qualifier("recruitAgent")
+private AgentMarkAgent agent;
+```
+
+> **注意：** 自定义 Agent Bean 会覆盖自动配置的默认 Bean。yml 中的 `system-prompt` 仅对自动配置的默认 Agent 生效。
+
+## 调用追踪（Trace）
+
+开启后，每次对话的完整调用链会自动存储为 JSON 文件：
+
+```yaml
+agentmark:
+  trace:
+    enabled: true                    # 监控开关（默认关闭）
+    path: /var/log/agentmark/traces  # 存储路径
+```
+
+`chat()` 返回的 `traceId` 可用于关联对应的 trace 文件：
+
+```java
+ChatResult result = agent.chat("查询上海岗位");
+result.getText();     // LLM 回复
+result.getTraceId();  // "a3f8c1e2"（trace 关闭时为 null）
+```
+
+生成的 trace 文件（如 `a3f8c1e2_20250519132200.json`）：
 
 ```json
 {
-  "reply": "北京今天晴，25°C",
-  "statistics": {
-    "llmCallCount": 2,
-    "toolCallCount": 1,
-    "totalDurationMs": 1550,
-    "callChain": [
-      {
-        "type": "llm", "name": "llm", "durationMs": 800, "success": true,
-        "input": "北京今天天气怎么样？",
-        "output": {"text": null, "toolCalls": [{"tool": "getWeather", "arguments": {"city": "北京"}}]}
-      },
-      {
-        "type": "tool", "name": "getWeather", "durationMs": 350, "success": true,
-        "input": {"city": "北京"},
-        "output": {"weather": "晴", "temperature": 25}
-      },
-      {
-        "type": "llm", "name": "llm", "durationMs": 400, "success": true,
-        "input": [{"tool": "getWeather", "result": {"weather": "晴", "temperature": 25}}],
-        "output": {"text": "北京今天晴，25°C"}
-      }
-    ]
-  }
+  "traceId": "a3f8c1e2",
+  "requestTime": "2025-05-19T13:22:00",
+  "userMessage": "查询上海岗位",
+  "reply": "...",
+  "llmCallCount": 4,
+  "toolCallCount": 4,
+  "totalDurationMs": 52142,
+  "callChain": [
+    {"type": "llm", "durationMs": 3200, "input": "查询上海岗位", "output": {"toolCalls": [{"tool": "queryJobs", "arguments": {"city": "上海"}}]}},
+    {"type": "tool", "name": "queryJobs", "durationMs": 8500, "input": {"city": "上海"}, "output": [...]},
+    {"type": "llm", "durationMs": 4100, "input": [{"tool": "queryJobs", "result": [...]}], "output": {"text": "..."}}
+  ]
 }
 ```
+
+关闭 trace 时零开销，不收集不写文件。
 
 ## 多轮对话
 
@@ -317,7 +354,7 @@ curl -X POST http://localhost:8080/api/agent/chat \
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
@@ -332,16 +369,39 @@ curl -X POST http://localhost:8080/api/agent/chat \
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-core</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
 </dependency>
 
 <!-- app-boot/pom.xml — 启动模块引入 starter -->
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
 </dependency>
 ```
+
+## 多工具组合查询
+
+AgentMark 支持 LLM 自动组合多个工具完成复杂任务，无需额外配置：
+
+**并行调用** — LLM 一次返回多个工具调用，全部执行：
+
+```
+用户："北京天气怎么样，顺便算一下 100*3"
+→ LLM 同时调用 getWeather(city="北京") + calculate(a=100, operator="*", b=3)
+→ 合并结果后回复
+```
+
+**链式调用** — 拿到结果后 LLM 可以继续调用其他工具：
+
+```
+用户："上海有什么餐饮岗位，薪资多少？"
+→ 第 1 轮：调用 queryJobs(city="上海", category="餐饮") → 拿到岗位列表
+→ 第 2 轮：调用 getJobSalary(jobId="xxx") → 拿到薪资信息
+→ 最终回复
+```
+
+最大调用轮数通过 `agentmark.max-tool-rounds` 配置（默认 10）。
 
 ## 项目结构
 
@@ -478,30 +538,7 @@ import io.github.daixueyun3377.agentmark.core.model.ToolDefinition;
 | 方法 | 说明 |
 |------|------|
 | `String getText()` | 获取 LLM 最终回复文本 |
-| `ChatStatistics getStatistics()` | 获取调用统计信息 |
-
-### ChatStatistics
-
-| 方法 | 说明 |
-|------|------|
-| `int getLlmCallCount()` | LLM 调用次数 |
-| `int getToolCallCount()` | 工具调用次数 |
-| `long getTotalDurationMs()` | 总耗时（ms） |
-| `long getLlmDurationMs()` | LLM 调用总耗时（ms） |
-| `long getToolDurationMs()` | 工具调用总耗时（ms） |
-| `List<CallRecord> getCallChain()` | 完整调用链明细 |
-
-### CallRecord
-
-| 方法 | 说明 |
-|------|------|
-| `String getType()` | 调用类型：`"llm"` 或 `"tool"` |
-| `String getName()` | 工具名称（LLM 调用时为 `"llm"`） |
-| `long getDurationMs()` | 本次调用耗时（ms） |
-| `boolean isSuccess()` | 是否成功 |
-| `String getError()` | 失败时的错误信息 |
-| `Object getInput()` | 输入（LLM: 用户消息/工具结果; Tool: 参数 Map） |
-| `Object getOutput()` | 输出（LLM: 响应文本+工具决策; Tool: 返回值） |
+| `String getTraceId()` | 获取追踪 ID（trace 关闭时为 null） |
 
 ### @AgentMark
 
@@ -540,6 +577,10 @@ import io.github.daixueyun3377.agentmark.core.model.ToolDefinition;
 | `agentmark.api-key` | String | — | API Key |
 | `agentmark.model` | String | `claude-sonnet-4-20250514` | 模型名称 |
 | `agentmark.base-url` | String | `https://api.anthropic.com/` | API 基础地址 |
+| `agentmark.system-prompt` | String | — | 系统提示词，定义 LLM 角色和行为 |
+| `agentmark.max-tool-rounds` | int | `10` | 单次对话最大工具调用轮数 |
+| `agentmark.trace.enabled` | boolean | `false` | 调用追踪开关 |
+| `agentmark.trace.path` | String | — | 追踪文件存储路径 |
 
 > 📖 **在线 Javadoc：** [https://daixueyun3377.github.io/AgentMark/](https://daixueyun3377.github.io/AgentMark/)
 

@@ -6,6 +6,7 @@ import io.github.daixueyun3377.agentmark.core.provider.ModelProvider;
 import io.github.daixueyun3377.agentmark.core.provider.claude.ClaudeProvider;
 import io.github.daixueyun3377.agentmark.core.provider.openai.OpenAiProvider;
 import io.github.daixueyun3377.agentmark.core.registry.ToolRegistry;
+import io.github.daixueyun3377.agentmark.core.trace.TraceWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.support.AopUtils;
@@ -75,7 +76,13 @@ public class AgentMarkAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public AgentMarkAgent agentMarkAgent(ToolRegistry registry, ModelProvider provider) {
-        return new AgentMarkAgent(registry, provider);
+    public AgentMarkAgent agentMarkAgent(ToolRegistry registry, ModelProvider provider, AgentMarkProperties props) {
+        TraceWriter traceWriter = null;
+        AgentMarkProperties.Trace traceConfig = props.getTrace();
+        if (traceConfig.isEnabled() && traceConfig.getPath() != null) {
+            traceWriter = new TraceWriter(traceConfig.getPath());
+            log.info("AgentMark trace enabled, storage path: {}", traceConfig.getPath());
+        }
+        return new AgentMarkAgent(registry, provider, traceWriter, props.getSystemPrompt(), props.getMaxToolRounds());
     }
 }

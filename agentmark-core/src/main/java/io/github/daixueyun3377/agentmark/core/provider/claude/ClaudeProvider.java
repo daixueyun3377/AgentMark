@@ -65,8 +65,16 @@ public class ClaudeProvider implements ModelProvider {
             body.put("model", model);
             body.put("max_tokens", 4096);
 
+            // 提取 system 消息，放到顶层 system 字段
+            StringBuilder systemText = new StringBuilder();
             ArrayNode msgArray = body.putArray("messages");
             for (ChatMessage msg : messages) {
+                if ("system".equals(msg.getRole())) {
+                    if (systemText.length() > 0) systemText.append("\n");
+                    systemText.append(msg.getContent());
+                    continue;
+                }
+
                 ObjectNode msgNode = msgArray.addObject();
                 msgNode.put("role", "tool".equals(msg.getRole()) ? "user" : msg.getRole());
 
@@ -93,6 +101,10 @@ public class ClaudeProvider implements ModelProvider {
                 } else {
                     msgNode.put("content", msg.getContent() != null ? msg.getContent() : "");
                 }
+            }
+
+            if (systemText.length() > 0) {
+                body.put("system", systemText.toString());
             }
 
             if (tools != null && !tools.isEmpty()) {

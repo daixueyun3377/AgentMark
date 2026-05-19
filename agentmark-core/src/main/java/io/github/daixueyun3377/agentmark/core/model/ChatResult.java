@@ -1,25 +1,24 @@
 package io.github.daixueyun3377.agentmark.core.model;
 
 /**
- * chat() 的返回结果，包含回复文本和调用统计信息。
+ * chat() 的返回结果，包含回复文本和 traceId。
+ * 当 trace 开启时，traceId 可用于关联存储的调用链 JSON 文件。
  */
 public class ChatResult {
 
     private final String text;
-    private final ChatStatistics statistics;
+    private final String traceId;
 
-    public ChatResult(String text, ChatStatistics statistics) {
+    public ChatResult(String text, String traceId) {
         this.text = text;
-        this.statistics = statistics;
+        this.traceId = traceId;
     }
 
     public String getText() { return text; }
-    public ChatStatistics getStatistics() { return statistics; }
+    public String getTraceId() { return traceId; }
 
     @Override
     public String toString() {
-        return String.format("ChatResult{text=%s, stats=%s}",
-                text != null && text.length() > 50 ? text.substring(0, 50) + "..." : text,
-                statistics);
+        return text != null ? text : "";
     }
 }
