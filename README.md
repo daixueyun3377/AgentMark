@@ -22,6 +22,7 @@
 - 🔌 **零侵入** — 不改变你的代码结构，注解层完全独立
 - 🔗 **自动编排** — 复杂任务自动拆解为多个工具调用
 - 🛡️ **类型安全** — 基于 Java 类型系统，编译期检查参数
+- 📝 **Markdown System Prompt** — 从 `agentmark/system-prompt.md` 加载角色设定，多 Agent 场景支持多个 `xxx-prompt.md`
 
 ## 快速开始
 
@@ -31,9 +32,11 @@
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5-SNAPSHOT</version>
 </dependency>
 ```
+
+> **SNAPSHOT 版本：** 当前为开发版，需先在本机执行 `mvn install` 安装到本地 Maven 仓库后方可引用。
 
 ### 2. 配置 API
 
@@ -46,7 +49,7 @@ agentmark:
   api-key: ${CLAUDE_API_KEY}
   model: claude-sonnet-4-20250514
   # base-url: https://api.anthropic.com/  # 默认值，可不填
-  # system-prompt: 你是一个专业助手  # 可选，定义 LLM 角色和行为
+  # system-prompt-path: agentmark/system-prompt.md  # 可选，默认从该文件读取 system prompt
 ```
 
 **OpenAI：**
@@ -69,7 +72,24 @@ agentmark:
 
 > **说明：** 通义千问、DeepSeek、Moonshot 等提供 OpenAI 兼容接口的模型，`provider` 统一填 `openai`，通过 `base-url` 指向对应的 API 地址即可。
 
-### 3. 标记你的方法
+### 3. 编写 System Prompt
+
+在 `src/main/resources/agentmark/system-prompt.md` 中定义 LLM 的角色与行为（启动时自动加载）：
+
+```markdown
+你是一个专业助手，回答要简洁准确。
+根据用户问题调用合适的工具完成任务。
+不确定的信息不要编造。
+```
+
+文件不存在时默认 Agent 不注入 system prompt，不影响工具调用。自定义路径：
+
+```yaml
+agentmark:
+  system-prompt-path: agentmark/system-prompt.md  # classpath 相对路径，默认值
+```
+
+### 4. 标记你的方法
 
 ```java
 import io.github.daixueyun3377.agentmark.core.annotation.AgentMark;
@@ -93,7 +113,7 @@ public class WeatherService {
 }
 ```
 
-### 4. 调用 Agent
+### 5. 调用 Agent
 
 ```java
 import io.github.daixueyun3377.agentmark.core.agent.AgentMarkAgent;
@@ -203,32 +223,53 @@ AI 会自动构造完整的嵌套对象调用工具。
 
 ## 系统提示词（System Prompt）
 
-通过 `system-prompt` 配置 LLM 的角色和行为：
+> **v1.0.5 变更：** 不再支持在 `application.yml` 中通过 `agentmark.system-prompt` 内联配置，改为从 Markdown 文件加载。请迁移到 `agentmark/system-prompt.md`。
+
+在应用工程的 `src/main/resources/agentmark/system-prompt.md` 中编写 system prompt，启动时由 `SystemPromptLoader` 自动加载：
+
+```markdown
+你是一个招聘助手，回答要简洁专业。
+只回答与岗位、招聘相关的问题。
+不确定的信息不要编造。
+```
+
+如需自定义文件路径，可在 `application.yml` 中配置：
 
 ```yaml
 agentmark:
-  system-prompt: |
-    你是一个招聘助手，回答要简洁专业。
-    只回答与岗位、招聘相关的问题。
-    不确定的信息不要编造。
+  system-prompt-path: agentmark/system-prompt.md  # 默认值，可改为其他 classpath 路径
 ```
 
 ### 多业务场景（多 Agent）
 
-不同业务场景可以创建多个 Agent 实例，各自使用不同的 system prompt：
+不同业务场景在 `agentmark/` 目录下放置多个 `xxx-prompt.md`，在代码中通过 `SystemPromptLoader` 加载并创建对应 Agent：
+
+```
+src/main/resources/agentmark/
+├── system-prompt.md      # 默认 Agent（自动配置）
+├── recruit-prompt.md     # 招聘 Agent
+└── customer-prompt.md    # 客服 Agent
+```
 
 ```java
+import io.github.daixueyun3377.agentmark.spring.SystemPromptLoader;
+import io.github.daixueyun3377.agentmark.spring.AgentMarkProperties;
+
 @Configuration
 public class AgentConfig {
 
     @Bean("recruitAgent")
-    public AgentMarkAgent recruitAgent(ToolRegistry registry, ModelProvider provider) {
-        return new AgentMarkAgent(registry, provider, null, "你是招聘助手，只回答招聘相关问题");
+    public AgentMarkAgent recruitAgent(ToolRegistry registry, ModelProvider provider,
+                                       SystemPromptLoader promptLoader, AgentMarkProperties props) {
+        String prompt = promptLoader.load("agentmark/recruit-prompt.md");
+        return new AgentMarkAgent(registry, provider, null, prompt, props.getMaxToolRounds());
     }
 
     @Bean("customerAgent")
-    public AgentMarkAgent customerAgent(ToolRegistry registry, ModelProvider provider) {
-        return new AgentMarkAgent(registry, provider, null, "你是客服助手，语气友好耐心");
+    public AgentMarkAgent customerAgent(ToolRegistry registry, ModelProvider provider,
+                                        SystemPromptLoader promptLoader, AgentMarkProperties props) {
+        String prompt = promptLoader.load("agentmark/customer-prompt.md");
+        return new AgentMarkAgent(registry, provider, null, prompt, props.getMaxToolRounds());
     }
 }
 ```
@@ -241,7 +282,7 @@ public class AgentConfig {
 private AgentMarkAgent agent;
 ```
 
-> **注意：** 自定义 Agent Bean 会覆盖自动配置的默认 Bean。yml 中的 `system-prompt` 仅对自动配置的默认 Agent 生效。
+> **注意：** 一旦注册了自定义 `AgentMarkAgent` Bean，自动配置的默认 Bean 将不再创建。默认 Agent 使用 `system-prompt-path` 指定的文件；多 Agent 场景由业务代码指定各自的 prompt 文件路径。
 
 ## 调用追踪（Trace）
 
@@ -354,11 +395,11 @@ curl -X POST http://localhost:8080/api/agent/chat \
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5-SNAPSHOT</version>
 </dependency>
 ```
 
-确保 Spring Boot 启动类能扫描到标注了 `@AgentMark` 的 Bean（通常 `@SpringBootApplication` 的包路径覆盖即可）。
+确保 Spring Boot 启动类能扫描到标注了 `@AgentMark` 的 Bean（通常 `@SpringBootApplication` 的包路径覆盖即可）。`system-prompt.md` 放在启动模块的 `src/main/resources/agentmark/` 下。
 
 **方式二：拆分依赖**
 
@@ -369,14 +410,14 @@ curl -X POST http://localhost:8080/api/agent/chat \
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-core</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5-SNAPSHOT</version>
 </dependency>
 
-<!-- app-boot/pom.xml — 启动模块引入 starter -->
+<!-- app-boot/pom.xml — 启动模块引入 starter，并放置 agentmark/system-prompt.md -->
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -515,6 +556,10 @@ import io.github.daixueyun3377.agentmark.core.provider.ModelProvider.ChatMessage
 import io.github.daixueyun3377.agentmark.core.provider.ModelProvider.ChatResponse;
 import io.github.daixueyun3377.agentmark.core.provider.ModelProvider.ToolCall;
 import io.github.daixueyun3377.agentmark.core.model.ToolDefinition;
+
+// Spring Boot 集成（多 Agent / 自定义 prompt 文件）
+import io.github.daixueyun3377.agentmark.spring.SystemPromptLoader;
+import io.github.daixueyun3377.agentmark.spring.AgentMarkProperties;
 ```
 
 ## API 速查
@@ -554,6 +599,13 @@ import io.github.daixueyun3377.agentmark.core.model.ToolDefinition;
 | `value` | String | — | 参数描述（必填） |
 | `required` | boolean | `true` | 是否必填 |
 
+### SystemPromptLoader
+
+| 方法 | 说明 |
+|------|------|
+| `String loadDefault()` | 加载默认路径 `agentmark/system-prompt.md` |
+| `String load(String path)` | 加载指定 classpath 路径的 prompt 文件，不存在时返回 `null` |
+
 ### ModelProvider（接口）
 
 | 方法 | 说明 |
@@ -577,7 +629,7 @@ import io.github.daixueyun3377.agentmark.core.model.ToolDefinition;
 | `agentmark.api-key` | String | — | API Key |
 | `agentmark.model` | String | `claude-sonnet-4-20250514` | 模型名称 |
 | `agentmark.base-url` | String | `https://api.anthropic.com/` | API 基础地址 |
-| `agentmark.system-prompt` | String | — | 系统提示词，定义 LLM 角色和行为 |
+| `agentmark.system-prompt-path` | String | `agentmark/system-prompt.md` | 默认 Agent 的 system prompt 文件（classpath 路径） |
 | `agentmark.max-tool-rounds` | int | `10` | 单次对话最大工具调用轮数 |
 | `agentmark.trace.enabled` | boolean | `false` | 调用追踪开关 |
 | `agentmark.trace.path` | String | — | 追踪文件存储路径 |

@@ -30,6 +30,12 @@
       "type": "java.lang.String",
       "description": "API 基础地址。Claude 默认 https://api.anthropic.com/，OpenAI 默认 https://api.openai.com/v1/，通义千问填 https://dashscope.aliyuncs.com/compatible-mode/v1/",
       "defaultValue": "https://api.anthropic.com/"
+    },
+    {
+      "name": "agentmark.system-prompt-path",
+      "type": "java.lang.String",
+      "description": "默认 Agent 的 system prompt 文件路径（classpath 相对路径），应用工程在 src/main/resources/agentmark/system-prompt.md 放置内容",
+      "defaultValue": "agentmark/system-prompt.md"
     }
   ],
   "hints": [

@@ -16,6 +16,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ResourceLoader;
 
 import java.lang.reflect.Method;
 
@@ -65,6 +66,12 @@ public class AgentMarkAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public SystemPromptLoader systemPromptLoader(ResourceLoader resourceLoader) {
+        return new SystemPromptLoader(resourceLoader);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public ModelProvider modelProvider(AgentMarkProperties props) {
         String p = props.getProvider();
         if ("claude".equals(p)) {
@@ -76,13 +83,15 @@ public class AgentMarkAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public AgentMarkAgent agentMarkAgent(ToolRegistry registry, ModelProvider provider, AgentMarkProperties props) {
+    public AgentMarkAgent agentMarkAgent(ToolRegistry registry, ModelProvider provider,
+                                         AgentMarkProperties props, SystemPromptLoader promptLoader) {
         TraceWriter traceWriter = null;
         AgentMarkProperties.Trace traceConfig = props.getTrace();
         if (traceConfig.isEnabled() && traceConfig.getPath() != null) {
             traceWriter = new TraceWriter(traceConfig.getPath());
             log.info("AgentMark trace enabled, storage path: {}", traceConfig.getPath());
         }
-        return new AgentMarkAgent(registry, provider, traceWriter, props.getSystemPrompt(), props.getMaxToolRounds());
+        String systemPrompt = promptLoader.load(props.getSystemPromptPath());
+        return new AgentMarkAgent(registry, provider, traceWriter, systemPrompt, props.getMaxToolRounds());
     }
 }

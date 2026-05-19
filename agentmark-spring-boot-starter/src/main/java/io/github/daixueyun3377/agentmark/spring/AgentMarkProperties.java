@@ -20,8 +20,11 @@ public class AgentMarkProperties {
     /** API 基础地址（可选，用于自定义端点） */
     private String baseUrl = "https://api.anthropic.com/";
 
-    /** 系统提示词（可选，定义 LLM 的角色和行为） */
-    private String systemPrompt;
+    /**
+     * 默认 Agent 的 system prompt 文件路径（classpath 相对路径）。
+     * 应用工程在 {@code src/main/resources/agentmark/system-prompt.md} 放置内容。
+     */
+    private String systemPromptPath = SystemPromptLoader.DEFAULT_SYSTEM_PROMPT_PATH;
 
     /** 单次对话最大工具调用轮数（默认 10） */
     private int maxToolRounds = 10;
@@ -41,8 +44,8 @@ public class AgentMarkProperties {
     public String getBaseUrl() { return baseUrl; }
     public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
 
-    public String getSystemPrompt() { return systemPrompt; }
-    public void setSystemPrompt(String systemPrompt) { this.systemPrompt = systemPrompt; }
+    public String getSystemPromptPath() { return systemPromptPath; }
+    public void setSystemPromptPath(String systemPromptPath) { this.systemPromptPath = systemPromptPath; }
 
     public int getMaxToolRounds() { return maxToolRounds; }
     public void setMaxToolRounds(int maxToolRounds) { this.maxToolRounds = maxToolRounds; }

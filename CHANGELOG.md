@@ -2,6 +2,17 @@
 
 所有重要变更记录在此文件中。格式基于 [Keep a Changelog](https://keepachangelog.com/)。
 
+## [1.0.5-SNAPSHOT] - 未发布
+
+### Changed
+
+- **System Prompt 改为文件加载** — 默认从 classpath `agentmark/system-prompt.md` 读取，配置项由 `agentmark.system-prompt` 调整为 `agentmark.system-prompt-path`
+- 新增 `SystemPromptLoader`，支持多 Agent 场景加载 `agentmark/xxx-prompt.md`
+
+### Removed
+
+- `agentmark.system-prompt` 内联 YAML 配置（请迁移至 Markdown 文件）
+
 ## [1.0.0] - 2026-04-10
 
 ### 🎉 首个正式版本

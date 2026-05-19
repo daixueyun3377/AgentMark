@@ -1,0 +1,16 @@
+---
+description: 本地 Maven 仓库路径
+alwaysApply: true
+---
+
+将依赖安装到本地 Maven 仓库时，使用以下路径（不要用默认 `~/.m2/repository`）：
+
+```
+/Users/qianhua/workspaces/tools/repository
+```
+
+命令示例：
+
+```bash
+mvn clean install -Dmaven.repo.local=/Users/qianhua/workspaces/tools/repository -Dgpg.skip=true
+```
