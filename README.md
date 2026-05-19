@@ -31,7 +31,7 @@
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
 </dependency>
 ```
 
@@ -96,12 +96,14 @@ public class WeatherService {
 
 ```java
 import io.github.daixueyun3377.agentmark.core.agent.AgentMarkAgent;
+import io.github.daixueyun3377.agentmark.core.model.ChatResult;
 
 @Autowired
 private AgentMarkAgent agent;
 
-String answer = agent.chat("北京今天天气怎么样？");
-// → "北京今天晴，气温 22°C，东风 3 级。"
+ChatResult result = agent.chat("北京今天天气怎么样？");
+System.out.println(result.getText());       // "北京今天晴，气温 22°C，东风 3 级。"
+System.out.println(result.getStatistics()); // ChatStatistics{llm=2(1200ms), tool=1(350ms), total=1550ms, chain=3 steps}
 ```
 
 就这么简单。
@@ -198,6 +200,52 @@ AI 会自动构造完整的嵌套对象调用工具。
 - 嵌套对象：递归解析所有字段
 - 循环引用：自动检测并防护
 
+## 调用统计
+
+`chat()` 返回 `ChatResult`，包含回复文本和完整的调用统计信息：
+
+```java
+ChatResult result = agent.chat("北京今天天气怎么样？");
+ChatStatistics stats = result.getStatistics();
+
+stats.getLlmCallCount();    // LLM 调用次数
+stats.getToolCallCount();   // 工具调用次数
+stats.getTotalDurationMs(); // 总耗时（ms）
+stats.getLlmDurationMs();   // LLM 调用总耗时
+stats.getToolDurationMs();  // 工具调用总耗时
+stats.getCallChain();       // 完整调用链明细
+```
+
+调用链（`callChain`）记录每一步的详细信息，包括 LLM 的输入输出、工具调用的入参和返回值：
+
+```json
+{
+  "reply": "北京今天晴，25°C",
+  "statistics": {
+    "llmCallCount": 2,
+    "toolCallCount": 1,
+    "totalDurationMs": 1550,
+    "callChain": [
+      {
+        "type": "llm", "name": "llm", "durationMs": 800, "success": true,
+        "input": "北京今天天气怎么样？",
+        "output": {"text": null, "toolCalls": [{"tool": "getWeather", "arguments": {"city": "北京"}}]}
+      },
+      {
+        "type": "tool", "name": "getWeather", "durationMs": 350, "success": true,
+        "input": {"city": "北京"},
+        "output": {"weather": "晴", "temperature": 25}
+      },
+      {
+        "type": "llm", "name": "llm", "durationMs": 400, "success": true,
+        "input": [{"tool": "getWeather", "result": {"weather": "晴", "temperature": 25}}],
+        "output": {"text": "北京今天晴，25°C"}
+      }
+    ]
+  }
+}
+```
+
 ## 多轮对话
 
 ```java
@@ -205,8 +253,8 @@ import io.github.daixueyun3377.agentmark.core.agent.AgentMarkAgent;
 import io.github.daixueyun3377.agentmark.core.agent.AgentMarkSession;
 
 AgentMarkSession session = agent.newSession();
-session.chat("查一下订单 ORD-001");     // → 订单详情
-session.chat("帮我取消这个订单");        // → AI 知道"这个"指 ORD-001
+session.chat("查一下订单 ORD-001").getText();     // → 订单详情
+session.chat("帮我取消这个订单").getText();        // → AI 知道"这个"指 ORD-001
 ```
 
 ## REST API 集成示例
@@ -215,8 +263,10 @@ session.chat("帮我取消这个订单");        // → AI 知道"这个"指 ORD
 
 ```java
 import io.github.daixueyun3377.agentmark.core.agent.AgentMarkAgent;
+import io.github.daixueyun3377.agentmark.core.model.ChatResult;
+import io.github.daixueyun3377.agentmark.core.model.ChatStatistics;
 import org.springframework.web.bind.annotation.*;
-import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
@@ -230,10 +280,18 @@ public class AgentController {
     }
 
     @PostMapping("/chat")
-    public Map<String, String> chat(@RequestBody Map<String, String> request) {
+    public Map<String, Object> chat(@RequestBody Map<String, String> request) {
         String message = request.get("message");
-        String reply = agent.chat(message);
-        return Collections.singletonMap("reply", reply);
+        ChatResult result = agent.chat(message);
+        ChatStatistics stats = result.getStatistics();
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("reply", result.getText());
+        response.put("llmCallCount", stats.getLlmCallCount());
+        response.put("toolCallCount", stats.getToolCallCount());
+        response.put("totalDurationMs", stats.getTotalDurationMs());
+        response.put("callChain", stats.getCallChain());
+        return response;
     }
 }
 ```
@@ -259,7 +317,7 @@ curl -X POST http://localhost:8080/api/agent/chat \
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
 </dependency>
 ```
 
@@ -274,14 +332,14 @@ curl -X POST http://localhost:8080/api/agent/chat \
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-core</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
 </dependency>
 
 <!-- app-boot/pom.xml — 启动模块引入 starter -->
 <dependency>
     <groupId>io.github.daixueyun3377</groupId>
     <artifactId>agentmark-spring-boot-starter</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
 </dependency>
 ```
 
@@ -405,15 +463,45 @@ import io.github.daixueyun3377.agentmark.core.model.ToolDefinition;
 
 | 方法 | 说明 |
 |------|------|
-| `String chat(String userMessage)` | 单轮对话，无上下文记忆 |
+| `ChatResult chat(String userMessage)` | 单轮对话，返回回复文本和调用统计 |
 | `AgentMarkSession newSession()` | 创建带上下文的会话，支持多轮对话 |
 
 ### AgentMarkSession
 
 | 方法 | 说明 |
 |------|------|
-| `String chat(String userMessage)` | 发送消息并获取回复，自动保持上下文 |
+| `ChatResult chat(String userMessage)` | 发送消息并获取回复，自动保持上下文 |
 | `void clear()` | 清除对话历史 |
+
+### ChatResult
+
+| 方法 | 说明 |
+|------|------|
+| `String getText()` | 获取 LLM 最终回复文本 |
+| `ChatStatistics getStatistics()` | 获取调用统计信息 |
+
+### ChatStatistics
+
+| 方法 | 说明 |
+|------|------|
+| `int getLlmCallCount()` | LLM 调用次数 |
+| `int getToolCallCount()` | 工具调用次数 |
+| `long getTotalDurationMs()` | 总耗时（ms） |
+| `long getLlmDurationMs()` | LLM 调用总耗时（ms） |
+| `long getToolDurationMs()` | 工具调用总耗时（ms） |
+| `List<CallRecord> getCallChain()` | 完整调用链明细 |
+
+### CallRecord
+
+| 方法 | 说明 |
+|------|------|
+| `String getType()` | 调用类型：`"llm"` 或 `"tool"` |
+| `String getName()` | 工具名称（LLM 调用时为 `"llm"`） |
+| `long getDurationMs()` | 本次调用耗时（ms） |
+| `boolean isSuccess()` | 是否成功 |
+| `String getError()` | 失败时的错误信息 |
+| `Object getInput()` | 输入（LLM: 用户消息/工具结果; Tool: 参数 Map） |
+| `Object getOutput()` | 输出（LLM: 响应文本+工具决策; Tool: 返回值） |
 
 ### @AgentMark
 

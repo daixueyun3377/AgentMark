@@ -11,22 +11,29 @@ public class CallRecord {
     private final long durationMs;
     private final boolean success;
     private final String error;
+    private final Object input;
+    private final Object output;
 
-    public CallRecord(String type, String name, long startTime, long durationMs, boolean success, String error) {
+    public CallRecord(String type, String name, long startTime, long durationMs,
+                      boolean success, String error, Object input, Object output) {
         this.type = type;
         this.name = name;
         this.startTime = startTime;
         this.durationMs = durationMs;
         this.success = success;
         this.error = error;
+        this.input = input;
+        this.output = output;
     }
 
-    public static CallRecord llm(long startTime, long durationMs, boolean success, String error) {
-        return new CallRecord("llm", "llm", startTime, durationMs, success, error);
+    public static CallRecord llm(long startTime, long durationMs, boolean success,
+                                   String error, Object input, Object output) {
+        return new CallRecord("llm", "llm", startTime, durationMs, success, error, input, output);
     }
 
-    public static CallRecord tool(String toolName, long startTime, long durationMs, boolean success, String error) {
-        return new CallRecord("tool", toolName, startTime, durationMs, success, error);
+    public static CallRecord tool(String toolName, long startTime, long durationMs,
+                                  boolean success, String error, Object input, Object output) {
+        return new CallRecord("tool", toolName, startTime, durationMs, success, error, input, output);
     }
 
     public String getType() { return type; }
@@ -35,6 +42,8 @@ public class CallRecord {
     public long getDurationMs() { return durationMs; }
     public boolean isSuccess() { return success; }
     public String getError() { return error; }
+    public Object getInput() { return input; }
+    public Object getOutput() { return output; }
 
     @Override
     public String toString() {

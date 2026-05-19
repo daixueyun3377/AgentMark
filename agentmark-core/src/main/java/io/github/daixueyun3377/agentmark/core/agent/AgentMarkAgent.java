@@ -55,9 +55,11 @@ public class AgentMarkAgent {
         ChatResponse response;
         try {
             response = provider.chat(userMessage, registry.getAllTools(), history);
-            stats.recordLlmCall(llmStart, System.currentTimeMillis() - llmStart, true, null);
+            stats.recordLlmCall(llmStart, System.currentTimeMillis() - llmStart, true, null,
+                    userMessage, buildLlmOutput(response));
         } catch (Exception e) {
-            stats.recordLlmCall(llmStart, System.currentTimeMillis() - llmStart, false, e.getMessage());
+            stats.recordLlmCall(llmStart, System.currentTimeMillis() - llmStart, false, e.getMessage(),
+                    userMessage, null);
             stats.setTotalDurationMs(System.currentTimeMillis() - totalStart);
             return new ChatResult("", stats);
         }
@@ -69,11 +71,19 @@ public class AgentMarkAgent {
             rounds++;
             history.add(ChatMessage.assistant(response.getText(), response.getToolCalls()));
 
+            List<Map<String, Object>> toolResultsSummary = new ArrayList<>();
             for (ToolCall toolCall : response.getToolCalls()) {
                 long toolStart = System.currentTimeMillis();
                 ToolResult result = executeTool(toolCall);
                 long toolDuration = System.currentTimeMillis() - toolStart;
-                stats.recordToolCall(toolCall.getName(), toolStart, toolDuration, result.isSuccess(), result.getError());
+                stats.recordToolCall(toolCall.getName(), toolStart, toolDuration,
+                        result.isSuccess(), result.getError(),
+                        toolCall.getArguments(), result.getData());
+
+                Map<String, Object> toolSummary = new java.util.LinkedHashMap<>();
+                toolSummary.put("tool", toolCall.getName());
+                toolSummary.put("result", result.getData());
+                toolResultsSummary.add(toolSummary);
 
                 String resultJson = toJson(result);
                 history.add(ChatMessage.toolResult(toolCall.getId(), resultJson));
@@ -83,9 +93,11 @@ public class AgentMarkAgent {
             llmStart = System.currentTimeMillis();
             try {
                 response = provider.submitToolResults(history, registry.getAllTools());
-                stats.recordLlmCall(llmStart, System.currentTimeMillis() - llmStart, true, null);
+                stats.recordLlmCall(llmStart, System.currentTimeMillis() - llmStart, true, null,
+                        toolResultsSummary, buildLlmOutput(response));
             } catch (Exception e) {
-                stats.recordLlmCall(llmStart, System.currentTimeMillis() - llmStart, false, e.getMessage());
+                stats.recordLlmCall(llmStart, System.currentTimeMillis() - llmStart, false, e.getMessage(),
+                        toolResultsSummary, null);
                 stats.setTotalDurationMs(System.currentTimeMillis() - totalStart);
                 return new ChatResult("", stats);
             }
@@ -97,6 +109,25 @@ public class AgentMarkAgent {
         stats.setTotalDurationMs(System.currentTimeMillis() - totalStart);
         log.info("Chat completed: {}", stats);
         return new ChatResult(finalText, stats);
+    }
+
+    /**
+     * 构建 LLM 输出摘要，包含响应文本和工具调用决策。
+     */
+    private Map<String, Object> buildLlmOutput(ChatResponse response) {
+        Map<String, Object> output = new java.util.LinkedHashMap<>();
+        output.put("text", response.getText());
+        if (response.hasToolCalls()) {
+            List<Map<String, Object>> calls = new ArrayList<>();
+            for (ToolCall tc : response.getToolCalls()) {
+                Map<String, Object> call = new java.util.LinkedHashMap<>();
+                call.put("tool", tc.getName());
+                call.put("arguments", tc.getArguments());
+                calls.add(call);
+            }
+            output.put("toolCalls", calls);
+        }
+        return output;
     }
 
     private ToolResult executeTool(ToolCall toolCall) {

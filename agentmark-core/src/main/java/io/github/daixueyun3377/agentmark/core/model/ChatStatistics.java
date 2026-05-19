@@ -16,16 +16,18 @@ public class ChatStatistics {
     private long toolDurationMs;
     private final List<CallRecord> callChain = new ArrayList<>();
 
-    public void recordLlmCall(long startTime, long durationMs, boolean success, String error) {
+    public void recordLlmCall(long startTime, long durationMs, boolean success,
+                               String error, Object input, Object output) {
         llmCallCount++;
         llmDurationMs += durationMs;
-        callChain.add(CallRecord.llm(startTime, durationMs, success, error));
+        callChain.add(CallRecord.llm(startTime, durationMs, success, error, input, output));
     }
 
-    public void recordToolCall(String toolName, long startTime, long durationMs, boolean success, String error) {
+    public void recordToolCall(String toolName, long startTime, long durationMs,
+                                boolean success, String error, Object input, Object output) {
         toolCallCount++;
         toolDurationMs += durationMs;
-        callChain.add(CallRecord.tool(toolName, startTime, durationMs, success, error));
+        callChain.add(CallRecord.tool(toolName, startTime, durationMs, success, error, input, output));
     }
 
     public void setTotalDurationMs(long totalDurationMs) {
