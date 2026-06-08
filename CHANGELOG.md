@@ -4,6 +4,12 @@
 
 ## [1.0.5-SNAPSHOT] - 未发布
 
+### Added
+
+- 新增 `AgentMarkSessionManager`，支持通过 `sessionId` 复用多轮对话上下文，并提供 TTL 与最大会话数限制
+- Spring Boot Starter 默认创建 `AgentMarkSessionManager` Bean，支持 `agentmark.session.*` 配置
+- Example REST 接口支持请求/响应 `sessionId`，便于 HTTP 场景保持同一次沟通上下文
+
 ### Changed
 
 - **System Prompt 改为文件加载** — 默认从 classpath `agentmark/system-prompt.md` 读取，配置项由 `agentmark.system-prompt` 调整为 `agentmark.system-prompt-path`

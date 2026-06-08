@@ -1,6 +1,7 @@
 package io.github.daixueyun3377.agentmark.spring;
 
 import io.github.daixueyun3377.agentmark.core.agent.AgentMarkAgent;
+import io.github.daixueyun3377.agentmark.core.agent.AgentMarkSessionManager;
 import io.github.daixueyun3377.agentmark.core.annotation.AgentMark;
 import io.github.daixueyun3377.agentmark.core.provider.ModelProvider;
 import io.github.daixueyun3377.agentmark.core.provider.claude.ClaudeProvider;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -93,5 +95,13 @@ public class AgentMarkAutoConfiguration {
         }
         String systemPrompt = promptLoader.load(props.getSystemPromptPath());
         return new AgentMarkAgent(registry, provider, traceWriter, systemPrompt, props.getMaxToolRounds());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "agentmark.session", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public AgentMarkSessionManager agentMarkSessionManager(AgentMarkAgent agent, AgentMarkProperties props) {
+        AgentMarkProperties.Session session = props.getSession();
+        return new AgentMarkSessionManager(agent, session.getTtlMillis(), session.getMaxSessions());
     }
 }

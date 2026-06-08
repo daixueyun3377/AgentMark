@@ -1,5 +1,6 @@
 package io.github.daixueyun3377.agentmark.spring;
 
+import io.github.daixueyun3377.agentmark.core.agent.AgentMarkSessionManager;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -32,6 +33,9 @@ public class AgentMarkProperties {
     /** 调用追踪配置 */
     private Trace trace = new Trace();
 
+    /** 会话管理配置 */
+    private Session session = new Session();
+
     public String getProvider() { return provider; }
     public void setProvider(String provider) { this.provider = provider; }
 
@@ -53,6 +57,9 @@ public class AgentMarkProperties {
     public Trace getTrace() { return trace; }
     public void setTrace(Trace trace) { this.trace = trace; }
 
+    public Session getSession() { return session; }
+    public void setSession(Session session) { this.session = session; }
+
     /**
      * 调用追踪配置。
      */
@@ -69,5 +76,29 @@ public class AgentMarkProperties {
 
         public String getPath() { return path; }
         public void setPath(String path) { this.path = path; }
+    }
+
+    /**
+     * 会话管理配置。
+     */
+    public static class Session {
+
+        /** 是否自动创建 AgentMarkSessionManager Bean（默认开启） */
+        private boolean enabled = true;
+
+        /** 会话空闲过期时间，单位毫秒；小于等于 0 表示不过期 */
+        private long ttlMillis = AgentMarkSessionManager.DEFAULT_TTL_MILLIS;
+
+        /** 最大内存会话数 */
+        private int maxSessions = AgentMarkSessionManager.DEFAULT_MAX_SESSIONS;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+        public long getTtlMillis() { return ttlMillis; }
+        public void setTtlMillis(long ttlMillis) { this.ttlMillis = ttlMillis; }
+
+        public int getMaxSessions() { return maxSessions; }
+        public void setMaxSessions(int maxSessions) { this.maxSessions = maxSessions; }
     }
 }

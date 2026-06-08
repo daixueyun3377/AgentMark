@@ -5,6 +5,13 @@
       "type": "io.github.daixueyun3377.agentmark.spring.AgentMarkProperties",
       "sourceType": "io.github.daixueyun3377.agentmark.spring.AgentMarkProperties",
       "description": "AgentMark 配置属性"
+    },
+    {
+      "name": "agentmark.session",
+      "type": "io.github.daixueyun3377.agentmark.spring.AgentMarkProperties$Session",
+      "sourceType": "io.github.daixueyun3377.agentmark.spring.AgentMarkProperties",
+      "sourceMethod": "getSession()",
+      "description": "AgentMark 会话管理配置"
     }
   ],
   "properties": [
@@ -36,6 +43,24 @@
       "type": "java.lang.String",
       "description": "默认 Agent 的 system prompt 文件路径（classpath 相对路径），应用工程在 src/main/resources/agentmark/system-prompt.md 放置内容",
       "defaultValue": "agentmark/system-prompt.md"
+    },
+    {
+      "name": "agentmark.session.enabled",
+      "type": "java.lang.Boolean",
+      "description": "是否自动创建 AgentMarkSessionManager Bean",
+      "defaultValue": true
+    },
+    {
+      "name": "agentmark.session.ttl-millis",
+      "type": "java.lang.Long",
+      "description": "会话空闲过期时间，单位毫秒；小于等于 0 表示不过期",
+      "defaultValue": 1800000
+    },
+    {
+      "name": "agentmark.session.max-sessions",
+      "type": "java.lang.Integer",
+      "description": "最大内存会话数",
+      "defaultValue": 1000
     }
   ],
   "hints": [

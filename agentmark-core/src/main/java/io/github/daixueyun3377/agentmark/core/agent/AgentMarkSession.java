@@ -20,7 +20,7 @@ public class AgentMarkSession {
 
     /**
      * 发送消息并获取回复，自动保持上下文。
-     * 返回包含回复文本和统计信息的结果。
+     * 返回包含回复文本和 traceId 的结果。
      */
     public ChatResult chat(String userMessage) {
         return agent.processMessage(userMessage, history);

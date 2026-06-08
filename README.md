@@ -36,7 +36,18 @@
 </dependency>
 ```
 
-> **SNAPSHOT 版本：** 当前为开发版，需先在本机执行 `mvn install` 安装到本地 Maven 仓库后方可引用。
+如果你本机有引用okhttp3，且版本与此工程不匹配，请在```<dependencyManagement>```下单独引用
+```xml
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.12.0</version>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
 
 ### 2. 配置 API
 
@@ -124,7 +135,7 @@ private AgentMarkAgent agent;
 
 ChatResult result = agent.chat("北京今天天气怎么样？");
 System.out.println(result.getText());       // "北京今天晴，气温 22°C，东风 3 级。"
-System.out.println(result.getStatistics()); // ChatStatistics{llm=2(1200ms), tool=1(350ms), total=1550ms, chain=3 steps}
+System.out.println(result.getTraceId());    // trace 开启时返回追踪 ID
 ```
 
 就这么简单。
@@ -329,47 +340,75 @@ result.getTraceId();  // "a3f8c1e2"（trace 关闭时为 null）
 ```java
 import io.github.daixueyun3377.agentmark.core.agent.AgentMarkAgent;
 import io.github.daixueyun3377.agentmark.core.agent.AgentMarkSession;
+import io.github.daixueyun3377.agentmark.core.agent.AgentMarkSessionManager;
 
 AgentMarkSession session = agent.newSession();
 session.chat("查一下订单 ORD-001").getText();     // → 订单详情
 session.chat("帮我取消这个订单").getText();        // → AI 知道"这个"指 ORD-001
+
+AgentMarkSessionManager sessionManager = new AgentMarkSessionManager(agent);
+String sessionId = sessionManager.createSession();
+sessionManager.chat(sessionId, "查一下订单 ORD-001");
+sessionManager.chat(sessionId, "帮我取消这个订单"); // → 通过同一个 sessionId 复用上下文
 ```
+
+Spring Boot Starter 默认会创建 `AgentMarkSessionManager` Bean。`traceId` 是单次请求的追踪 ID，`sessionId` 是多轮对话的上下文 ID，二者用途不同。
 
 ## REST API 集成示例
 
 在你的 Spring Boot 项目中创建 Controller，即可通过 HTTP 与 Agent 对话：
 
 ```java
-import io.github.daixueyun3377.agentmark.core.agent.AgentMarkAgent;
+import io.github.daixueyun3377.agentmark.core.agent.AgentMarkSessionManager;
 import io.github.daixueyun3377.agentmark.core.model.ChatResult;
-import io.github.daixueyun3377.agentmark.core.model.ChatStatistics;
 import org.springframework.web.bind.annotation.*;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/agent")
 public class AgentController {
 
-    private final AgentMarkAgent agent;
+    private final AgentMarkSessionManager sessionManager;
 
-    public AgentController(AgentMarkAgent agent) {
-        this.agent = agent;
+    public AgentController(AgentMarkSessionManager sessionManager) {
+        this.sessionManager = sessionManager;
     }
 
     @PostMapping("/chat")
-    public Map<String, Object> chat(@RequestBody Map<String, String> request) {
-        String message = request.get("message");
-        ChatResult result = agent.chat(message);
-        ChatStatistics stats = result.getStatistics();
+    public ChatResponse chat(@RequestBody ChatRequest request) {
+        String sessionId = request.getSessionId();
+        if (sessionId == null || sessionId.trim().isEmpty()) {
+            sessionId = sessionManager.createSession();
+        }
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("reply", result.getText());
-        response.put("llmCallCount", stats.getLlmCallCount());
-        response.put("toolCallCount", stats.getToolCallCount());
-        response.put("totalDurationMs", stats.getTotalDurationMs());
-        response.put("callChain", stats.getCallChain());
-        return response;
+        ChatResult result = sessionManager.chat(sessionId, request.getMessage());
+        return new ChatResponse(sessionId, result.getText(), result.getTraceId());
+    }
+
+    public static class ChatRequest {
+        private String sessionId;
+        private String message;
+
+        public String getSessionId() { return sessionId; }
+        public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+
+        public String getMessage() { return message; }
+        public void setMessage(String message) { this.message = message; }
+    }
+
+    public static class ChatResponse {
+        private final String sessionId;
+        private final String reply;
+        private final String traceId;
+
+        public ChatResponse(String sessionId, String reply, String traceId) {
+            this.sessionId = sessionId;
+            this.reply = reply;
+            this.traceId = traceId;
+        }
+
+        public String getSessionId() { return sessionId; }
+        public String getReply() { return reply; }
+        public String getTraceId() { return traceId; }
     }
 }
 ```
@@ -380,6 +419,14 @@ public class AgentController {
 curl -X POST http://localhost:8080/api/agent/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "北京今天天气怎么样？"}'
+```
+
+第二次请求带上返回的 `sessionId`，即可保持同一轮上下文：
+
+```bash
+curl -X POST http://localhost:8080/api/agent/chat \
+  -H "Content-Type: application/json" \
+  -d '{"sessionId": "上一次返回的 sessionId", "message": "那明天呢？"}'
 ```
 
 ## 多模块项目集成
@@ -549,6 +596,7 @@ import io.github.daixueyun3377.agentmark.core.annotation.ParamDesc;
 // Agent 与会话
 import io.github.daixueyun3377.agentmark.core.agent.AgentMarkAgent;
 import io.github.daixueyun3377.agentmark.core.agent.AgentMarkSession;
+import io.github.daixueyun3377.agentmark.core.agent.AgentMarkSessionManager;
 
 // 自定义 Provider 时需要
 import io.github.daixueyun3377.agentmark.core.provider.ModelProvider;
@@ -568,7 +616,7 @@ import io.github.daixueyun3377.agentmark.spring.AgentMarkProperties;
 
 | 方法 | 说明 |
 |------|------|
-| `ChatResult chat(String userMessage)` | 单轮对话，返回回复文本和调用统计 |
+| `ChatResult chat(String userMessage)` | 单轮对话，返回回复文本和 traceId |
 | `AgentMarkSession newSession()` | 创建带上下文的会话，支持多轮对话 |
 
 ### AgentMarkSession
@@ -577,6 +625,17 @@ import io.github.daixueyun3377.agentmark.spring.AgentMarkProperties;
 |------|------|
 | `ChatResult chat(String userMessage)` | 发送消息并获取回复，自动保持上下文 |
 | `void clear()` | 清除对话历史 |
+
+### AgentMarkSessionManager
+
+| 方法 | 说明 |
+|------|------|
+| `String createSession()` | 创建内存会话并返回 sessionId |
+| `ChatResult chat(String sessionId, String userMessage)` | 使用指定 sessionId 发送消息，不存在或过期时创建新会话 |
+| `boolean clear(String sessionId)` | 删除指定会话 |
+| `void clearAll()` | 删除所有会话 |
+| `void cleanupExpiredSessions()` | 清理过期会话 |
+| `int size()` | 返回当前内存会话数 |
 
 ### ChatResult
 
@@ -631,6 +690,9 @@ import io.github.daixueyun3377.agentmark.spring.AgentMarkProperties;
 | `agentmark.base-url` | String | `https://api.anthropic.com/` | API 基础地址 |
 | `agentmark.system-prompt-path` | String | `agentmark/system-prompt.md` | 默认 Agent 的 system prompt 文件（classpath 路径） |
 | `agentmark.max-tool-rounds` | int | `10` | 单次对话最大工具调用轮数 |
+| `agentmark.session.enabled` | boolean | `true` | 是否自动创建 `AgentMarkSessionManager` Bean |
+| `agentmark.session.ttl-millis` | long | `1800000` | 会话空闲过期时间（毫秒），小于等于 0 表示不过期 |
+| `agentmark.session.max-sessions` | int | `1000` | 最大内存会话数 |
 | `agentmark.trace.enabled` | boolean | `false` | 调用追踪开关 |
 | `agentmark.trace.path` | String | — | 追踪文件存储路径 |
 
